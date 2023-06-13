@@ -1,0 +1,34 @@
+{
+	"schemaVersion": 1,
+	"id": "mc-server-analytics",
+	"version": "${version}",
+	"name": "MC Server Analytics Mod",
+	"description": "MC Server Analytics provides server owners tools and utilities for analyzing and troubleshooting their servers.",
+	"authors": [
+		"danieltebor"
+	],
+	"contact": {
+		"homepage": "https://fabricmc.net/",
+		"sources": "https://github.com/FabricMC/fabric-example-mod"
+	},
+	"license": "CC0-1.0",
+	"icon": "assets/mc_server_analytics/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"server": [
+			"com.danieltebor.mc_server_analytics.MCServerAnalytics"
+		]
+	},
+	"mixins": [
+		"mc-server-analytics.mixins.json"
+	],
+	"depends": {
+		"fabricloader": ">=0.14.21",
+		"minecraft": "~1.20",
+		"java": ">=17",
+		"fabric-api": "*"
+	},
+	"suggests": {
+		"another-mod": "*"
+	}
+}
