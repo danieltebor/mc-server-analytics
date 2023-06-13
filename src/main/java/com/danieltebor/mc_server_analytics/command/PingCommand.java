@@ -61,6 +61,11 @@ public final class PingCommand extends MCServerAnalyticsCommand {
     }
 
     private int defaultRun(CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
+        if (!context.getSource().isExecutedByPlayer()){
+            context.getSource().sendError(Text.literal("Invalid command usage"));
+            return 0;
+        }
+
         context.getSource().sendMessage(Text.literal("Your ping: " + context.getSource().getPlayer().pingMilliseconds));
         return 1;
     }
