@@ -54,26 +54,26 @@ public abstract class MinecraftServerMixin {
         long tickTimeNS = tickStartTimeNS - prevTickEndTimeNS;
         prevTickEndTimeNS = tickStartTimeNS;
 
-        this.TICK_TIMES_NS_5s.submitTickTimeNS(tickTimeNS);
-        this.TICK_TIMES_NS_10s.submitTickTimeNS(tickTimeNS);
-        this.TICK_TIMES_NS_1m.submitTickTimeNS(tickTimeNS);
-        this.TICK_TIMES_NS_5m.submitTickTimeNS(tickTimeNS);
+        TICK_TIMES_NS_5s.submitTickTimeNS(tickTimeNS);
+        TICK_TIMES_NS_10s.submitTickTimeNS(tickTimeNS);
+        TICK_TIMES_NS_1m.submitTickTimeNS(tickTimeNS);
+        TICK_TIMES_NS_5m.submitTickTimeNS(tickTimeNS);
     }
 
     public float mcServerAnalytics$getTPS5s() {
-        return this.TICK_TIMES_NS_5s.getTPS();
+        return TICK_TIMES_NS_5s.getTPS();
     }
 
     public float mcServerAnalytics$getTPS10s() {
-        return this.TICK_TIMES_NS_10s.getTPS();
+        return TICK_TIMES_NS_10s.getTPS();
     }
 
     public float mcServerAnalytics$getTPS1m() {
-        return this.TICK_TIMES_NS_1m.getTPS();
+        return TICK_TIMES_NS_1m.getTPS();
     }
 
     public float mcServerAnalytics$getTPS5m() {
-        return this.TICK_TIMES_NS_5m.getTPS();
+        return TICK_TIMES_NS_5m.getTPS();
     }
 
     public String mcServerAnalytics$formatTPS(float tps) {

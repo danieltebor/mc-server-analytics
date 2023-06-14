@@ -25,6 +25,7 @@ package com.danieltebor.mc_server_analytics;
 import com.danieltebor.mc_server_analytics.command.MCServerAnalyticsCommand;
 import com.danieltebor.mc_server_analytics.command.*;
 import com.danieltebor.mc_server_analytics.extension.MinecraftServerTPSExtension;
+import com.danieltebor.mc_server_analytics.util.CPUInfoTracker;
 import java.util.stream.Stream;
 import net.fabricmc.api.DedicatedServerModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
@@ -38,17 +39,21 @@ public class MCServerAnalytics implements DedicatedServerModInitializer {
     private static MCServerAnalytics instance;
     
     private MinecraftServer server;
+    private CPUInfoTracker cpuInfoTracker = new CPUInfoTracker();
     
     @Override
     public void onInitializeServer() {
         MCServerAnalytics.instance = this;
 
-        ServerLifecycleEvents.SERVER_STARTED.register((server) -> this.server = server);
-
         Stream.of(
+            new CPUCommand(),
             new PingCommand(),
             new TPSCommand()
         ).forEach(this::registerCommand);
+
+        ServerLifecycleEvents.SERVER_STARTED.register((server) -> this.server = server);
+
+        ServerLifecycleEvents.SERVER_STOPPED.register((server) -> cpuInfoTracker.close());
     }
 
     private void registerCommand(MCServerAnalyticsCommand command) {
@@ -56,12 +61,16 @@ public class MCServerAnalytics implements DedicatedServerModInitializer {
             (dispatcher, registryAccess, environment) -> command.register(dispatcher, registryAccess, environment));
     }
 
+    public CPUInfoTracker getCpuInfoTracker() {
+        return cpuInfoTracker;
+    }
+
     public MinecraftServer getServer() {
-        return this.server;
+        return server;
     }
 
     public MinecraftServerTPSExtension getTPSExtension() {
-        return (MinecraftServerTPSExtension) this.server;
+        return (MinecraftServerTPSExtension) server;
     }
 
     public static MCServerAnalytics getInstance() {
