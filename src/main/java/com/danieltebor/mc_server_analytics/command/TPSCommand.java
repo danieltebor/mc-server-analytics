@@ -24,9 +24,13 @@ package com.danieltebor.mc_server_analytics.command;
 
 import com.danieltebor.mc_server_analytics.MCServerAnalytics;
 import com.danieltebor.mc_server_analytics.extension.MinecraftServerTPSExtension;
+import com.danieltebor.mc_server_analytics.util.Formatter;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import java.util.AbstractMap;
+import java.util.ArrayList;
+import java.util.stream.Stream;
 import net.minecraft.command.CommandRegistryAccess;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
@@ -37,26 +41,53 @@ import net.minecraft.text.Text;
  */
 public final class TPSCommand extends MCServerAnalyticsCommand {
     @Override
-    public void register(CommandDispatcher<ServerCommandSource> dispatcher,
-                         CommandRegistryAccess registryAccess,
-                         CommandManager.RegistrationEnvironment registrationEnvironment) {
-        dispatcher.register(CommandManager.literal("tps").executes(this::run));
+    public void register(final CommandDispatcher<ServerCommandSource> dispatcher,
+                         final CommandRegistryAccess registryAccess,
+                         final CommandManager.RegistrationEnvironment registrationEnvironment) {
+        dispatcher.register(CommandManager.literal("tps").executes(this::executeDefault));
     }
 
     @Override
-    protected int run(CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
-        try {
+    protected int executeDefault(final CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
         MinecraftServerTPSExtension tpsExtension = MCServerAnalytics.getInstance().getTPSExtension();
-        String tpsInfo = "TPS | 5s: " + tpsExtension.formatTPS(tpsExtension.getTPS5s())
-                        + " | 10s: " + tpsExtension.formatTPS(tpsExtension.getTPS10s())
-                        + " | 1m: " + tpsExtension.formatTPS(tpsExtension.getTPS1m())
-                        + " | 5m: " + tpsExtension.formatTPS(tpsExtension.getTPS5m()) + " |";
+        ArrayList<String> formattedTPSList = new ArrayList<>(5);
+        boolean shouldFormatColor = context.getSource().isExecutedByPlayer();
 
-        context.getSource().sendMessage(Text.literal(tpsInfo));
-        } catch(Exception e) {
-            e.printStackTrace();
-        }
-        
+        Stream.of(
+            new AbstractMap.SimpleEntry<String, Float>("5s", tpsExtension.getTPS5s()),
+            new AbstractMap.SimpleEntry<String, Float>("15s", tpsExtension.getTPS15s()),
+            new AbstractMap.SimpleEntry<String, Float>("1m", tpsExtension.getTPS1m()),
+            new AbstractMap.SimpleEntry<String, Float>("5m", tpsExtension.getTPS5m()),
+            new AbstractMap.SimpleEntry<String, Float>("15m", tpsExtension.getTPS15m())
+        ).forEach((tpsInfo) -> formattedTPSList.add(buildFormattedTPS(tpsInfo, shouldFormatColor)));
+
+        StringBuilder formattedTPSInfo = new StringBuilder(
+            shouldFormatColor
+                ? Formatter.formatColor("TPS", Formatter.Color.AQUA)
+                : "TPS ");
+        formattedTPSList.stream().forEach(formattedTPSInfo::append);
+
+        context.getSource().sendMessage(Text.literal(formattedTPSInfo.toString()));
         return 1;
     }
+
+    private String buildFormattedTPS(final AbstractMap.SimpleEntry<String, Float> tpsInfo, final boolean shouldFormatColor) {
+        StringBuilder formattedTPS = new StringBuilder(" | ");
+
+        formattedTPS.append(
+            shouldFormatColor
+                ? Formatter.formatColor(tpsInfo.getKey(), Formatter.Color.GOLD)
+                : tpsInfo.getKey());
+        formattedTPS.append(": ");
+
+        formattedTPS.append(
+            shouldFormatColor
+                ? Formatter.formatColor(Formatter.formatDecimal(tpsInfo.getValue()),
+                    Formatter.rateNumByUpperBound(tpsInfo.getValue(), 18, 12, 6))
+                : Formatter.formatDecimal(tpsInfo.getValue()));
+
+        return formattedTPS.toString();
+    }
+
+    
 }

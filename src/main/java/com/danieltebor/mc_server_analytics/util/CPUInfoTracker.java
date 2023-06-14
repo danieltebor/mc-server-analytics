@@ -22,21 +22,17 @@
 
 package com.danieltebor.mc_server_analytics.util;
 
-import java.util.List;
-
 import oshi.SystemInfo;
 import oshi.hardware.CentralProcessor;
 import oshi.hardware.Sensors;
-import oshi.hardware.CentralProcessor.PhysicalProcessor;
 
 /**
  * @author Daniel Tebor
  */
-public final class CPUInfoTracker {
+public class CPUInfoTracker {
     private final SystemInfo si = new SystemInfo();
     private final CentralProcessor processor = si.getHardware().getProcessor();
     private final Sensors sensors = si.getHardware().getSensors();
-    private final List<PhysicalProcessor> physicalProcessors = processor.getPhysicalProcessors();
 
     private Thread loadTracker = new Thread(this::trackCPULoad);
     private volatile boolean trackerShouldRun = true;

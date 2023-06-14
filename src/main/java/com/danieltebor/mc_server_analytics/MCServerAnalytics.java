@@ -22,7 +22,6 @@
 
 package com.danieltebor.mc_server_analytics;
 
-import com.danieltebor.mc_server_analytics.command.MCServerAnalyticsCommand;
 import com.danieltebor.mc_server_analytics.command.*;
 import com.danieltebor.mc_server_analytics.extension.MinecraftServerTPSExtension;
 import com.danieltebor.mc_server_analytics.util.CPUInfoTracker;
@@ -41,24 +40,27 @@ public class MCServerAnalytics implements DedicatedServerModInitializer {
     private MinecraftServer server;
     private CPUInfoTracker cpuInfoTracker = new CPUInfoTracker();
     
-    @Override
-    public void onInitializeServer() {
-        MCServerAnalytics.instance = this;
-
-        Stream.of(
-            new CPUCommand(),
-            new PingCommand(),
-            new TPSCommand()
-        ).forEach(this::registerCommand);
-
-        ServerLifecycleEvents.SERVER_STARTED.register((server) -> this.server = server);
-
-        ServerLifecycleEvents.SERVER_STOPPED.register((server) -> cpuInfoTracker.close());
+    public MCServerAnalytics() {
+        if (instance != null) {
+            throw new IllegalStateException("MCServerAnalytics has already been instantiated");
+        }
+        instance = this;
     }
 
-    private void registerCommand(MCServerAnalyticsCommand command) {
-        CommandRegistrationCallback.EVENT.register(
-            (dispatcher, registryAccess, environment) -> command.register(dispatcher, registryAccess, environment));
+    @Override
+    public void onInitializeServer() {
+        Stream.of(
+            new CPUCommand(),
+            new MEMCommand(),
+            new PingCommand(),
+            new TPSCommand()
+        ).forEach((command) -> {
+            CommandRegistrationCallback.EVENT.register(
+                (dispatcher, registryAccess, environment) -> command.register(dispatcher, registryAccess, environment));
+        });
+
+        ServerLifecycleEvents.SERVER_STARTED.register((server) -> this.server = server);
+        ServerLifecycleEvents.SERVER_STOPPED.register((server) -> cpuInfoTracker.close());
     }
 
     public CPUInfoTracker getCpuInfoTracker() {
@@ -74,6 +76,6 @@ public class MCServerAnalytics implements DedicatedServerModInitializer {
     }
 
     public static MCServerAnalytics getInstance() {
-        return MCServerAnalytics.instance;
+        return instance;
     }
 }

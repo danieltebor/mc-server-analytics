@@ -22,6 +22,7 @@
 
 package com.danieltebor.mc_server_analytics.command;
 
+import com.danieltebor.mc_server_analytics.util.Formatter;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
@@ -38,35 +39,67 @@ import net.minecraft.text.Text;
  */
 public final class PingCommand extends MCServerAnalyticsCommand {
     @Override
-    public void register(CommandDispatcher<ServerCommandSource> dispatcher,
-                         CommandRegistryAccess registryAccess,
-                         RegistrationEnvironment registrationEnvironment) {
-        System.out.println("registered");
+    public void register(final CommandDispatcher<ServerCommandSource> dispatcher,
+                         final CommandRegistryAccess registryAccess,
+                         final RegistrationEnvironment registrationEnvironment) {
         dispatcher.register(CommandManager.literal("ping")
-            .executes(this::defaultRun)
+            .executes(this::executeDefault)
             .then(CommandManager.argument("player", EntityArgumentType.players())
-            .executes(this::run)));
+            .executes(this::executeParameterized)));
     }
 
     @Override
-    protected int run(CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
-        ServerPlayerEntity player = EntityArgumentType.getPlayer(context, "player");
-        if (player.equals(context.getSource().getPlayer())) {
-            context.getSource().sendMessage(Text.literal("Your ping: " + context.getSource().getPlayer().pingMilliseconds));
-        }
-        else {
-            context.getSource().sendMessage(Text.literal(player.getEntityName() + "'s ping: " + player.pingMilliseconds));
-        }
-        return 1;
-    }
-
-    private int defaultRun(CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
+    protected int executeDefault(final CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
         if (!context.getSource().isExecutedByPlayer()){
             context.getSource().sendError(Text.literal("Invalid command usage"));
             return 0;
         }
 
-        context.getSource().sendMessage(Text.literal("Your ping: " + context.getSource().getPlayer().pingMilliseconds));
+        context.getSource().sendMessage(Text.literal(
+                buildFormattedPlayerPing(context.getSource().getPlayer(), true, true)));
         return 1;
+    }
+
+    @Override
+    protected int executeParameterized(final CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
+        ServerPlayerEntity player = EntityArgumentType.getPlayer(context, "player");
+        boolean playerIsCommander = player.equals(context.getSource().getPlayer());
+        boolean shouldFormatColor = context.getSource().isExecutedByPlayer();
+        
+        context.getSource().sendMessage(Text.literal(buildFormattedPlayerPing(player, playerIsCommander, shouldFormatColor)));
+        return 1;
+    }
+
+    private String buildFormattedPlayerPing(final ServerPlayerEntity player, final boolean playerIsCommander, final boolean shouldFormatColor) {
+        StringBuilder formattedPlayerPing = new StringBuilder();
+        
+        if (playerIsCommander) {
+            formattedPlayerPing.append(
+                shouldFormatColor
+                    ? Formatter.formatColor("Your ", Formatter.Color.GOLD)
+                    : player.getEntityName());
+        }
+        else {
+            formattedPlayerPing.append(
+                shouldFormatColor
+                    ? Formatter.formatColor(player.getEntityName(), Formatter.Color.GOLD)
+                    : player.getEntityName());
+            formattedPlayerPing.append("'s ");
+        }
+
+        formattedPlayerPing.append(
+            shouldFormatColor
+                ? Formatter.formatColor("ping", Formatter.Color.AQUA)
+                : "ping");
+        formattedPlayerPing.append(": ");
+
+        formattedPlayerPing.append(
+            shouldFormatColor
+                ? Formatter.formatColor(String.valueOf(player.pingMilliseconds),
+                    Formatter.rateNumByLowerBound(player.pingMilliseconds, 50, 150, 300))
+                : player.pingMilliseconds);
+        formattedPlayerPing.append("ms");
+
+        return formattedPlayerPing.toString();
     }
 }

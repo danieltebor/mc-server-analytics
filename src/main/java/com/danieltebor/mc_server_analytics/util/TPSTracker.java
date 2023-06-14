@@ -37,9 +37,9 @@ public class TPSTracker {
 
     private Queue<Long> tickTimesNS;
 
-    public TPSTracker(int secondsToTrack) {
+    public TPSTracker(final int secondsToTrack) {
         if (secondsToTrack <= 0) {
-            throw new RuntimeException("secondsToTrack must be greater than 0.");
+            throw new RuntimeException("secondsToTrack must be greater than 0");
         }
 
         this.TICKS_TO_TRACK = secondsToTrack * DESIRED_TPS;
@@ -47,7 +47,7 @@ public class TPSTracker {
         this.tickTimesNS.add(DESIRED_TICK_TIME_NS);
     }
 
-    public void submitTickTimeNS(long tickTimeNS) {
+    public void submitTickTimeNS(final long tickTimeNS) {
         if (this.tickTimesNS.size() == this.TICKS_TO_TRACK) {
             this.tickTimesNS.remove();
         }

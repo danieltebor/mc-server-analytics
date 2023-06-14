@@ -42,9 +42,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Implements({@Interface(iface = MinecraftServerTPSExtension.class, prefix = "mcServerAnalytics$")})
 public abstract class MinecraftServerMixin {
     private final TPSTracker TICK_TIMES_NS_5s = new TPSTracker(5);
-    private final TPSTracker TICK_TIMES_NS_10s = new TPSTracker(10);
+    private final TPSTracker TICK_TIMES_NS_15s = new TPSTracker(15);
     private final TPSTracker TICK_TIMES_NS_1m = new TPSTracker(60);
     private final TPSTracker TICK_TIMES_NS_5m = new TPSTracker(60 * 5);
+    private final TPSTracker TICK_TIMES_NS_15m = new TPSTracker(60 * 15);
 
     private long prevTickEndTimeNS = System.nanoTime();
 
@@ -55,17 +56,18 @@ public abstract class MinecraftServerMixin {
         prevTickEndTimeNS = tickStartTimeNS;
 
         TICK_TIMES_NS_5s.submitTickTimeNS(tickTimeNS);
-        TICK_TIMES_NS_10s.submitTickTimeNS(tickTimeNS);
+        TICK_TIMES_NS_15s.submitTickTimeNS(tickTimeNS);
         TICK_TIMES_NS_1m.submitTickTimeNS(tickTimeNS);
         TICK_TIMES_NS_5m.submitTickTimeNS(tickTimeNS);
+        TICK_TIMES_NS_15m.submitTickTimeNS(tickTimeNS);
     }
 
     public float mcServerAnalytics$getTPS5s() {
         return TICK_TIMES_NS_5s.getTPS();
     }
 
-    public float mcServerAnalytics$getTPS10s() {
-        return TICK_TIMES_NS_10s.getTPS();
+    public float mcServerAnalytics$getTPS15s() {
+        return TICK_TIMES_NS_15s.getTPS();
     }
 
     public float mcServerAnalytics$getTPS1m() {
@@ -76,7 +78,7 @@ public abstract class MinecraftServerMixin {
         return TICK_TIMES_NS_5m.getTPS();
     }
 
-    public String mcServerAnalytics$formatTPS(float tps) {
-        return String.format("%.1f", tps);
+    public float mcServerAnalytics$getTPS15m() {
+        return TICK_TIMES_NS_15m.getTPS();
     }
 }

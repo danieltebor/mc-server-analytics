@@ -24,6 +24,7 @@ package com.danieltebor.mc_server_analytics.command;
 
 import com.danieltebor.mc_server_analytics.MCServerAnalytics;
 import com.danieltebor.mc_server_analytics.util.CPUInfoTracker;
+import com.danieltebor.mc_server_analytics.util.Formatter;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
@@ -38,29 +39,47 @@ import net.minecraft.text.Text;
  */
 public final class CPUCommand extends MCServerAnalyticsCommand {
     @Override
-    public void register(CommandDispatcher<ServerCommandSource> dispatcher,
-                         CommandRegistryAccess registryAccess,
-                         RegistrationEnvironment registrationEnvironment) {
-        System.out.println("registered");
+    public void register(final CommandDispatcher<ServerCommandSource> dispatcher,
+                         final CommandRegistryAccess registryAccess,
+                         final RegistrationEnvironment registrationEnvironment) {
         dispatcher.register(CommandManager.literal("cpu")
-            .executes(this::run));
+            .executes(this::executeDefault));
     }
 
     @Override
-    protected int run(CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
-        if (!context.getSource().isExecutedByPlayer()){
-            context.getSource().sendError(Text.literal("/cpu command is not available in server console"));
+    protected int executeDefault(final CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
+        if (!context.getSource().isExecutedByPlayer()) {
+            context.getSource().sendError(Text.literal("cpu command is not available in server console"));
             return 0;
         }
         
         CPUInfoTracker cpuInfoTracker = MCServerAnalytics.getInstance().getCpuInfoTracker();
-        String cpuLoadInfo = "        CPU Load        \n"
-            + "==================\n";
-        
         double[] threadLoads = cpuInfoTracker.getThreadLoads();
         double threadLoadSum = 0;
+        
+        StringBuilder cpuLoadInfo = new StringBuilder(
+            Formatter.formatColor("        CPU Load        ", Formatter.Color.AQUA));
+        cpuLoadInfo.append("\n===================\n");
+        
         for (int i = 0; i < threadLoads.length; i++) {
-            cpuLoadInfo += formatLoad(i, threadLoads[i]) + "\n";
+            double threadLoad = threadLoads[i] * 100;
+
+            cpuLoadInfo.append(
+                Formatter.buildUtilizationBar(threadLoad, 0, 100, 5, Formatter.Color.LIGHT_PURPLE, true));
+            cpuLoadInfo.append(" ");
+
+            cpuLoadInfo.append(
+                Formatter.formatColor(Formatter.formatDecimal(threadLoad),
+                    Formatter.rateNumByLowerBound(threadLoad, 95, 100, 100)));
+            cpuLoadInfo.append("% ");
+
+            StringBuilder cpuCore = new StringBuilder("(CPU ");
+            cpuCore.append(i);
+            cpuCore.append(")");
+            cpuLoadInfo.append(
+                Formatter.formatColor(cpuCore.toString(), Formatter.Color.GOLD));
+            cpuLoadInfo.append("\n");
+
             threadLoadSum += threadLoads[i];
         }
 
@@ -69,37 +88,41 @@ public final class CPUCommand extends MCServerAnalyticsCommand {
             return 0;
         }
 
-        double overallLoad = cpuInfoTracker.getOverallLoad();
-        cpuLoadInfo += "Overall Load: "
-            + (overallLoad == 0.0f ? "UNAVAILABLE\n"
-            : String.format("%.1f", overallLoad * 100) + "%\n");
-        
-        //double freq = cpuInfoTracker.getMaxCoreFreqGHz();
-        //cpuLoadInfo += "Freq: " + (freq == 0.0f ? "UNAVAILABLE\n" : freq + " GHz\n");
+        cpuLoadInfo.append(
+            Formatter.formatColor("Overall Load", Formatter.Color.GOLD));
+        cpuLoadInfo.append(": ");
+
+        double overallLoad = cpuInfoTracker.getOverallLoad() * 100;
+        boolean overallLoadIsAvailable = true;
+        if (overallLoad == 0.0) {
+            overallLoadIsAvailable = false;
+        }
+        cpuLoadInfo.append(
+            overallLoadIsAvailable
+                ? Formatter.formatColor(Formatter.formatDecimal(overallLoad),
+                    Formatter.rateNumByLowerBound(overallLoad, 95, 100, 100))
+                : Formatter.formatColor("UNAVAILABLE", Formatter.Color.DARK_RED));
+        cpuLoadInfo.append(overallLoadIsAvailable ? "%\n" : "\n");
+
+        cpuLoadInfo.append(
+            Formatter.formatColor("Temp", Formatter.Color.GOLD));
+        cpuLoadInfo.append(": ");
 
         double tempCelc = cpuInfoTracker.getTempCelc();
-        cpuLoadInfo += "Temp: " + (tempCelc == 0.0f ? "UNAVAILABLE" : tempCelc + " °C");
+        boolean tempCelcIsAvailable = true;
+        if (tempCelc == 0.0) {
+            tempCelcIsAvailable = false;
+        }
+        cpuLoadInfo.append(
+            overallLoadIsAvailable
+                ? Formatter.formatColor("UNAVAILABLE", Formatter.Color.DARK_RED)
+                : Formatter.formatColor(Formatter.formatDecimal(tempCelc),
+                    Formatter.rateNumByLowerBound(tempCelc, 70, 80, 90)));
+        if (tempCelcIsAvailable) {
+            cpuLoadInfo.append(" °C");
+        }
 
-        context.getSource().sendMessage(Text.literal(cpuLoadInfo));
+        context.getSource().sendMessage(Text.literal(cpuLoadInfo.toString()));
         return 1;
-    }
-
-    private String formatLoad(int thread, double threadLoad) {
-        threadLoad *= 100;
-
-        String utilizationBar = "[";
-        int barProgress = 0;
-        while (barProgress < threadLoad) {
-            utilizationBar += "|";
-            barProgress += 5;
-        }
-        while (barProgress < 100) {
-            utilizationBar += ".";
-            barProgress += 5;
-        }
-        utilizationBar += "]";
-
-        return utilizationBar + " " + String.format("%.1f", threadLoad)
-            + "% (CPU " + thread + ")";
     }
 }
