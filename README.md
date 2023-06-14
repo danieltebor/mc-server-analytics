@@ -10,12 +10,12 @@ MC Server Analytics is a lightweight server monitoring mod that adds utils for a
 
 ### Planned Commands & Features
 - summary ping command for all players
-- cpu usage command
 - memory usage command
 - loaded chunks command
 - world size command
 - help command
 - nicer looking command outputs
+- displaying cpu usage/memory on a client-side leaderboard
 
 ## Installation
 ### Requirements
