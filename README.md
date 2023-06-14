@@ -6,7 +6,7 @@ MC Server Analytics is a lightweight server monitoring mod that adds utils for a
 
 ### Commands
 - /cpu (shows cpu thread load, overall load, and temperature)
-- /mem || /ram (shows server memory usage)
+- /mem or /ram (shows server memory usage)
 - /ping (shows your ping)
 - /ping <player> (shows ping of specified player)
 - /tps (shows avg server TPS for 5s, 15s, 1m, 5m, and 15m)
