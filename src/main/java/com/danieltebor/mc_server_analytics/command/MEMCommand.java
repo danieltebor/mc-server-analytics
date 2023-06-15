@@ -60,7 +60,6 @@ public final class MEMCommand extends MCServerAnalyticsCommand {
             return 0;
         }
 
-        try {
         StringBuilder memUsageInfo = new StringBuilder(
             Formatter.formatColor("        Memory Usage", Formatter.Color.AQUA));
         memUsageInfo.append("\n======================\n");
@@ -86,9 +85,6 @@ public final class MEMCommand extends MCServerAnalyticsCommand {
             usedTotalMemory, committedTotalMemory, maxMemory, "Total"));
 
         context.getSource().sendMessage(Text.literal(memUsageInfo.toString()));
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
         return 1;
     }
 

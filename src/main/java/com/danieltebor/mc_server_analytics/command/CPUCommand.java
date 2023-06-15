@@ -114,10 +114,10 @@ public final class CPUCommand extends MCServerAnalyticsCommand {
             tempCelcIsAvailable = false;
         }
         cpuLoadInfo.append(
-            overallLoadIsAvailable
-                ? Formatter.formatColor("UNAVAILABLE", Formatter.Color.DARK_RED)
-                : Formatter.formatColor(Formatter.formatDecimal(tempCelc),
-                    Formatter.rateNumByLowerBound(tempCelc, 70, 80, 90)));
+            tempCelcIsAvailable
+                ? Formatter.formatColor(Formatter.formatDecimal(tempCelc),
+                    Formatter.rateNumByLowerBound(tempCelc, 70, 80, 90))
+                : Formatter.formatColor("UNAVAILABLE", Formatter.Color.DARK_RED));
         if (tempCelcIsAvailable) {
             cpuLoadInfo.append(" °C");
         }

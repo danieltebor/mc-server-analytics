@@ -37,6 +37,6 @@ public abstract class MCServerAnalyticsCommand {
                                   final CommandRegistryAccess registryAccess,
                                   final CommandManager.RegistrationEnvironment registrationEnvironment);
 
-    protected int executeDefault(final CommandContext<ServerCommandSource> context) throws CommandSyntaxException { return 0; };
-    protected int executeParameterized(final CommandContext<ServerCommandSource> context) throws CommandSyntaxException { return 0; };
+    protected int executeDefault(final CommandContext<ServerCommandSource> context) throws CommandSyntaxException { return 0; }
+    protected int executeParameterized(final CommandContext<ServerCommandSource> context) throws CommandSyntaxException { return 0; }
 }

@@ -54,7 +54,7 @@ public final class PingCommand extends MCServerAnalyticsCommand {
             context.getSource().sendError(Text.literal("Invalid command usage"));
             return 0;
         }
-
+        
         context.getSource().sendMessage(Text.literal(
                 buildFormattedPlayerPing(context.getSource().getPlayer(), true, true)));
         return 1;
@@ -89,7 +89,7 @@ public final class PingCommand extends MCServerAnalyticsCommand {
 
         formattedPlayerPing.append(
             shouldFormatColor
-                ? Formatter.formatColor("ping", Formatter.Color.AQUA)
+                ? Formatter.formatColor("Ping", Formatter.Color.AQUA)
                 : "ping");
         formattedPlayerPing.append(": ");
 

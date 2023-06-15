@@ -51,6 +51,7 @@ public class MCServerAnalytics implements DedicatedServerModInitializer {
     public void onInitializeServer() {
         Stream.of(
             new CPUCommand(),
+            new HelpCommand(),
             new MEMCommand(),
             new PingCommand(),
             new TPSCommand()

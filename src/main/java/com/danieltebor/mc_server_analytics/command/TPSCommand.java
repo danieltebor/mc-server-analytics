@@ -64,7 +64,7 @@ public final class TPSCommand extends MCServerAnalyticsCommand {
         StringBuilder formattedTPSInfo = new StringBuilder(
             shouldFormatColor
                 ? Formatter.formatColor("TPS", Formatter.Color.AQUA)
-                : "TPS ");
+                : "TPS");
         formattedTPSList.stream().forEach(formattedTPSInfo::append);
 
         context.getSource().sendMessage(Text.literal(formattedTPSInfo.toString()));
