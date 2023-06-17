@@ -75,8 +75,8 @@ public final class PerformanceSummaryCommand extends MCServerAnalyticsCommand {
         final CommandOutputBuilder outputBuilder = new CommandOutputBuilder("\n", 
             CommandOutputBuilder.Color.AQUA, isServerConsoleOutput);
 
-        outputBuilder.append(isServerConsoleOutput ? "Performance Summary" : "       Performance Summary", CommandOutputBuilder.Color.AQUA);
-        outputBuilder.append("\n========================\n");
+        outputBuilder.append(isServerConsoleOutput ? "Performance Summary" : "     Performance Summary", CommandOutputBuilder.Color.AQUA);
+        outputBuilder.append("\n=========================\n");
 
         // Chunks loaded & entity count.
         final int[] chunksLoadedSum = {0};
