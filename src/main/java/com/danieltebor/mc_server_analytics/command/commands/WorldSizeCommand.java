@@ -15,9 +15,9 @@ import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.text.Text;
 
 public class WorldSizeCommand extends MCServerAnalyticsCommand {
-    public static final String NAME = "ping";
+    public static final String NAME = "world-size";
     public static final String[][] ARG_NAMES = {};
-    public static final String DESCRIPTION = "Shows your ping or ping of specified player";
+    public static final String DESCRIPTION = "Shows world file size";
 
     public WorldSizeCommand() {
         super(NAME, ARG_NAMES, DESCRIPTION);
