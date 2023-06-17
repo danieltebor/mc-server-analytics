@@ -5,16 +5,21 @@
 MC Server Analytics is a lightweight Fabric server mod that adds utils for admins & players to analyze their server.
 
 ### Commands
+- /chunk-info \<dimension\> (shows loaded chunks)
 - /cpu (shows cpu thread load, overall load, and temperature)
+- /entity-info \<dimension\> (shows number of entities)
 - /mcsa-help (describes each command usage)
-- /mem or /ram (shows server memory usage)
+- /mem (shows server memory usage)
+- /perf-sum (shows summary of server telemetry)
+- /ping-avg (shows your ping or ping of specified player)
 - /ping \<player\> (shows your ping or ping of specified player)
 - /tps (shows avg server TPS for 5s, 15s, 1m, 5m, and 15m)
+- /world-size (Shows world file size)
 
 ### Planned Commands & Features
-- summary ping command for all players
-- loaded chunks command
-- world size command
+- enabling/disabling commands
+- command permissions
+- logging
 - displaying cpu usage/memory on a client-side leaderboard
 
 ## Installation
