@@ -22,23 +22,33 @@
 
 package com.danieltebor.mc_server_analytics;
 
-import com.danieltebor.mc_server_analytics.command.*;
+import com.danieltebor.mc_server_analytics.command.MCServerAnalyticsCommand;
+import com.danieltebor.mc_server_analytics.command.commands.*;
 import com.danieltebor.mc_server_analytics.extension.MinecraftServerTPSExtension;
 import com.danieltebor.mc_server_analytics.util.CPUInfoTracker;
+import com.danieltebor.mc_server_analytics.util.WorldFileInfoTracker;
+
+import java.util.ArrayList;
+import java.util.List;
 import java.util.stream.Stream;
+
 import net.fabricmc.api.DedicatedServerModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
+
 import net.minecraft.server.MinecraftServer;
 
 /**
  * @author Daniel Tebor
  */
 public class MCServerAnalytics implements DedicatedServerModInitializer {
+
     private static MCServerAnalytics instance;
     
+    private final List<MCServerAnalyticsCommand> registeredCommands = new ArrayList<>();
+    private final CPUInfoTracker cpuInfoTracker = new CPUInfoTracker();
+    private final WorldFileInfoTracker worldFileInfoTracker = new WorldFileInfoTracker();
     private MinecraftServer server;
-    private CPUInfoTracker cpuInfoTracker = new CPUInfoTracker();
     
     public MCServerAnalytics() {
         if (instance != null) {
@@ -50,22 +60,39 @@ public class MCServerAnalytics implements DedicatedServerModInitializer {
     @Override
     public void onInitializeServer() {
         Stream.of(
+            new ChunkInfoCommand(),
             new CPUCommand(),
+            new EntityInfoCommand(),
             new HelpCommand(),
             new MEMCommand(),
+            new PerformanceSummaryCommand(),
+            new PingAvgCommand(),
             new PingCommand(),
-            new TPSCommand()
+            new TPSCommand(),
+            new WorldSizeCommand()
         ).forEach((command) -> {
             CommandRegistrationCallback.EVENT.register(
-                (dispatcher, registryAccess, environment) -> command.register(dispatcher, registryAccess, environment));
+                (dispatcher, registryAccess, registrationEnvironment) -> command.register(dispatcher, registryAccess, registrationEnvironment));
+            registeredCommands.add(command);
         });
 
         ServerLifecycleEvents.SERVER_STARTED.register((server) -> this.server = server);
-        ServerLifecycleEvents.SERVER_STOPPED.register((server) -> cpuInfoTracker.close());
+        ServerLifecycleEvents.SERVER_STOPPED.register((server) -> {
+            cpuInfoTracker.close();
+            worldFileInfoTracker.close();
+        });
+    }
+
+    public List<MCServerAnalyticsCommand> getRegisteredCommands() {
+        return registeredCommands;
     }
 
     public CPUInfoTracker getCpuInfoTracker() {
         return cpuInfoTracker;
+    }
+
+    public WorldFileInfoTracker getWorldFileInfoTracker() {
+        return worldFileInfoTracker;
     }
 
     public MinecraftServer getServer() {

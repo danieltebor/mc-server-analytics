@@ -29,7 +29,7 @@ import java.lang.management.MemoryUsage;
  * @author Daniel Tebor
  */
 public abstract class MemInfo {
-
+    
     public static long getCommittedHeapMemory() {
         return ManagementFactory.getMemoryMXBean().getHeapMemoryUsage().getCommitted();
     }
@@ -64,7 +64,7 @@ public abstract class MemInfo {
         return bytes / (1024 * 1024);
     }
 
-    public static long toGB(long bytes) {
+    public static float toGB(long bytes) {
         return bytes / (1024 * 1024 * 1024);
     }
 }

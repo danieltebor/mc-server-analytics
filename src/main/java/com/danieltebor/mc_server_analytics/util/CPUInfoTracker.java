@@ -30,34 +30,35 @@ import oshi.hardware.Sensors;
  * @author Daniel Tebor
  */
 public class CPUInfoTracker {
+    
     private final SystemInfo si = new SystemInfo();
     private final CentralProcessor processor = si.getHardware().getProcessor();
     private final Sensors sensors = si.getHardware().getSensors();
 
-    private Thread loadTracker = new Thread(this::trackCPULoad);
-    private volatile boolean trackerShouldRun = true;
+    private final Thread loadTracker = new Thread(this::trackCPULoad);
+    private volatile boolean loadTrackerShouldRun = true;
+    private long[] prevTicks = processor.getSystemCpuLoadTicks();
+    private long[][] prevProcTicks = processor.getProcessorCpuLoadTicks();
     private double overallLoad;
     private double[] threadLoads;
     private boolean tempSensorIsAvailable = true;
 
     public CPUInfoTracker() {
+        overallLoad = processor.getSystemCpuLoadBetweenTicks(prevTicks);
+        threadLoads = processor.getProcessorCpuLoadBetweenTicks(prevProcTicks);
+
         loadTracker.start();
     }
 
     private void trackCPULoad() {
-        long[] prevTicks = processor.getSystemCpuLoadTicks();
-        long[][] prevProcTicks = processor.getProcessorCpuLoadTicks();
-
-        while(trackerShouldRun) {
+        while(loadTrackerShouldRun) {
             try {
                 Thread.sleep(1000);
             } catch(InterruptedException e) {}
 
-            double newOverallLoad = processor.getSystemCpuLoadBetweenTicks(prevTicks);
-            double[] newThreadLoads = processor.getProcessorCpuLoadBetweenTicks(prevProcTicks);
             synchronized (this) {
-                overallLoad = newOverallLoad;
-                threadLoads = newThreadLoads;
+                overallLoad = processor.getSystemCpuLoadBetweenTicks(prevTicks);
+                threadLoads = processor.getProcessorCpuLoadBetweenTicks(prevProcTicks);
             }
 
             prevTicks = processor.getSystemCpuLoadTicks();
@@ -66,7 +67,13 @@ public class CPUInfoTracker {
     }
 
     public void close() {
-        trackerShouldRun = false;
+        loadTrackerShouldRun = false;
+        try {
+            loadTracker.join();
+        }
+        catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
     }
 
     public long[] getCoreFreqsHz() {
@@ -99,6 +106,10 @@ public class CPUInfoTracker {
 
     public synchronized double getOverallLoad() {
         return overallLoad;
+    }
+
+    public boolean loadIsAvailable() {
+        return getOverallLoad() != 0.0;
     }
 
     public synchronized double[] getThreadLoads() {

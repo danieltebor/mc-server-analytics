@@ -20,17 +20,20 @@
  * SOFTWARE.
  */
 
-package com.danieltebor.mc_server_analytics.command;
+package com.danieltebor.mc_server_analytics.command.commands;
 
 import com.danieltebor.mc_server_analytics.MCServerAnalytics;
+import com.danieltebor.mc_server_analytics.command.CommandOutputBuilder;
+import com.danieltebor.mc_server_analytics.command.MCServerAnalyticsCommand;
 import com.danieltebor.mc_server_analytics.extension.MinecraftServerTPSExtension;
-import com.danieltebor.mc_server_analytics.util.Formatter;
+
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
+
 import java.util.AbstractMap;
-import java.util.ArrayList;
 import java.util.stream.Stream;
+
 import net.minecraft.command.CommandRegistryAccess;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
@@ -40,6 +43,15 @@ import net.minecraft.text.Text;
  * @author Daniel Tebor
  */
 public final class TPSCommand extends MCServerAnalyticsCommand {
+
+    public static final String NAME = "tps";
+    public static final String[][] ARG_NAMES = {};
+    public static final String DESCRIPTION = "Shows avg server TPS for 5s, 15s, 1m, 5m, and 15m";
+
+    public TPSCommand() {
+        super(NAME, ARG_NAMES, DESCRIPTION);
+    }
+
     @Override
     public void register(final CommandDispatcher<ServerCommandSource> dispatcher,
                          final CommandRegistryAccess registryAccess,
@@ -49,45 +61,30 @@ public final class TPSCommand extends MCServerAnalyticsCommand {
 
     @Override
     protected int executeDefault(final CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
-        MinecraftServerTPSExtension tpsExtension = MCServerAnalytics.getInstance().getTPSExtension();
-        ArrayList<String> formattedTPSList = new ArrayList<>(5);
-        boolean shouldFormatColor = context.getSource().isExecutedByPlayer();
+        final CommandOutputBuilder outputBuilder = new CommandOutputBuilder("TPS", 
+            CommandOutputBuilder.Color.AQUA, !context.getSource().isExecutedByPlayer());
+        
+        appendOutput(outputBuilder, CommandOutputBuilder.Color.GOLD);
 
-        Stream.of(
-            new AbstractMap.SimpleEntry<String, Float>("5s", tpsExtension.getTPS5s()),
-            new AbstractMap.SimpleEntry<String, Float>("15s", tpsExtension.getTPS15s()),
-            new AbstractMap.SimpleEntry<String, Float>("1m", tpsExtension.getTPS1m()),
-            new AbstractMap.SimpleEntry<String, Float>("5m", tpsExtension.getTPS5m()),
-            new AbstractMap.SimpleEntry<String, Float>("15m", tpsExtension.getTPS15m())
-        ).forEach((tpsInfo) -> formattedTPSList.add(buildFormattedTPS(tpsInfo, shouldFormatColor)));
-
-        StringBuilder formattedTPSInfo = new StringBuilder(
-            shouldFormatColor
-                ? Formatter.formatColor("TPS", Formatter.Color.AQUA)
-                : "TPS");
-        formattedTPSList.stream().forEach(formattedTPSInfo::append);
-
-        context.getSource().sendMessage(Text.literal(formattedTPSInfo.toString()));
+        context.getSource().sendMessage(Text.literal(outputBuilder.toString()));
         return 1;
     }
 
-    private String buildFormattedTPS(final AbstractMap.SimpleEntry<String, Float> tpsInfo, final boolean shouldFormatColor) {
-        StringBuilder formattedTPS = new StringBuilder(" | ");
+    public static void appendOutput(final CommandOutputBuilder outputBuilder, CommandOutputBuilder.Color labelColor) {
+        final MinecraftServerTPSExtension tpsExtension = MCServerAnalytics.getInstance().getTPSExtension();
 
-        formattedTPS.append(
-            shouldFormatColor
-                ? Formatter.formatColor(tpsInfo.getKey(), Formatter.Color.GOLD)
-                : tpsInfo.getKey());
-        formattedTPS.append(": ");
+        Stream.of(
+            new AbstractMap.SimpleImmutableEntry<String, Float>("5s", tpsExtension.getTPS5s()),
+            new AbstractMap.SimpleImmutableEntry<String, Float>("15s", tpsExtension.getTPS15s()),
+            new AbstractMap.SimpleImmutableEntry<String, Float>("1m", tpsExtension.getTPS1m()),
+            new AbstractMap.SimpleImmutableEntry<String, Float>("5m", tpsExtension.getTPS5m()),
+            new AbstractMap.SimpleImmutableEntry<String, Float>("15m", tpsExtension.getTPS15m())
+        ).forEach((tpsInfo) -> {
+            outputBuilder.append(" | ");
+            outputBuilder.append(tpsInfo.getKey(), labelColor);
+            outputBuilder.append(": ");
 
-        formattedTPS.append(
-            shouldFormatColor
-                ? Formatter.formatColor(Formatter.formatDecimal(tpsInfo.getValue()),
-                    Formatter.rateNumByUpperBound(tpsInfo.getValue(), 18, 12, 6))
-                : Formatter.formatDecimal(tpsInfo.getValue()));
-
-        return formattedTPS.toString();
+            outputBuilder.rateByUpperBoundAndAppend(tpsInfo.getValue(), 18, 12, 6, true, false);
+        });
     }
-
-    
 }

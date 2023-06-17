@@ -24,6 +24,7 @@ package com.danieltebor.mc_server_analytics.mixin;
 
 import com.danieltebor.mc_server_analytics.extension.MinecraftServerTPSExtension;
 import com.danieltebor.mc_server_analytics.util.TPSTracker;
+
 import net.minecraft.server.MinecraftServer;
 
 import java.util.function.BooleanSupplier;
@@ -41,11 +42,11 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(MinecraftServer.class)
 @Implements({@Interface(iface = MinecraftServerTPSExtension.class, prefix = "mcServerAnalytics$")})
 public abstract class MinecraftServerMixin {
-    private final TPSTracker TICK_TIMES_NS_5s = new TPSTracker(5);
-    private final TPSTracker TICK_TIMES_NS_15s = new TPSTracker(15);
-    private final TPSTracker TICK_TIMES_NS_1m = new TPSTracker(60);
-    private final TPSTracker TICK_TIMES_NS_5m = new TPSTracker(60 * 5);
-    private final TPSTracker TICK_TIMES_NS_15m = new TPSTracker(60 * 15);
+    private final TPSTracker tickTimesNS5s = new TPSTracker(5);
+    private final TPSTracker tickTimesNS15s = new TPSTracker(15);
+    private final TPSTracker tickTimesNS1m = new TPSTracker(60);
+    private final TPSTracker tickTimesNS5m = new TPSTracker(60 * 5);
+    private final TPSTracker tickTimesNS15m = new TPSTracker(60 * 15);
 
     private long prevTickEndTimeNS = System.nanoTime();
 
@@ -55,30 +56,30 @@ public abstract class MinecraftServerMixin {
         long tickTimeNS = tickStartTimeNS - prevTickEndTimeNS;
         prevTickEndTimeNS = tickStartTimeNS;
 
-        TICK_TIMES_NS_5s.submitTickTimeNS(tickTimeNS);
-        TICK_TIMES_NS_15s.submitTickTimeNS(tickTimeNS);
-        TICK_TIMES_NS_1m.submitTickTimeNS(tickTimeNS);
-        TICK_TIMES_NS_5m.submitTickTimeNS(tickTimeNS);
-        TICK_TIMES_NS_15m.submitTickTimeNS(tickTimeNS);
+        tickTimesNS5s.submitTickTimeNS(tickTimeNS);
+        tickTimesNS15s.submitTickTimeNS(tickTimeNS);
+        tickTimesNS1m.submitTickTimeNS(tickTimeNS);
+        tickTimesNS5m.submitTickTimeNS(tickTimeNS);
+        tickTimesNS15m.submitTickTimeNS(tickTimeNS);
     }
 
     public float mcServerAnalytics$getTPS5s() {
-        return TICK_TIMES_NS_5s.getTPS();
+        return tickTimesNS5s.getTPS();
     }
 
     public float mcServerAnalytics$getTPS15s() {
-        return TICK_TIMES_NS_15s.getTPS();
+        return tickTimesNS15s.getTPS();
     }
 
     public float mcServerAnalytics$getTPS1m() {
-        return TICK_TIMES_NS_1m.getTPS();
+        return tickTimesNS1m.getTPS();
     }
 
     public float mcServerAnalytics$getTPS5m() {
-        return TICK_TIMES_NS_5m.getTPS();
+        return tickTimesNS5m.getTPS();
     }
 
     public float mcServerAnalytics$getTPS15m() {
-        return TICK_TIMES_NS_15m.getTPS();
+        return tickTimesNS15m.getTPS();
     }
 }

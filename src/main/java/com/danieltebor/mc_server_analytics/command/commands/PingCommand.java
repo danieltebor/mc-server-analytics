@@ -20,12 +20,15 @@
  * SOFTWARE.
  */
 
-package com.danieltebor.mc_server_analytics.command;
+package com.danieltebor.mc_server_analytics.command.commands;
 
-import com.danieltebor.mc_server_analytics.util.Formatter;
+import com.danieltebor.mc_server_analytics.command.CommandOutputBuilder;
+import com.danieltebor.mc_server_analytics.command.MCServerAnalyticsCommand;
+
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
+
 import net.minecraft.command.CommandRegistryAccess;
 import net.minecraft.command.argument.EntityArgumentType;
 import net.minecraft.server.command.CommandManager;
@@ -38,6 +41,15 @@ import net.minecraft.text.Text;
  * @author Daniel Tebor
  */
 public final class PingCommand extends MCServerAnalyticsCommand {
+
+    public static final String NAME = "ping";
+    public static final String[][] ARG_NAMES = {{"player"}};
+    public static final String DESCRIPTION = "Shows your ping or ping of specified player";
+
+    public PingCommand() {
+        super(NAME, ARG_NAMES, DESCRIPTION);
+    }
+
     @Override
     public void register(final CommandDispatcher<ServerCommandSource> dispatcher,
                          final CommandRegistryAccess registryAccess,
@@ -50,56 +62,45 @@ public final class PingCommand extends MCServerAnalyticsCommand {
 
     @Override
     protected int executeDefault(final CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
-        if (!context.getSource().isExecutedByPlayer()){
+        final boolean isServerConsoleOutput = !context.getSource().isExecutedByPlayer();
+        
+        if (isServerConsoleOutput) {
             context.getSource().sendError(Text.literal("Invalid command usage"));
             return 0;
         }
         
         context.getSource().sendMessage(Text.literal(
-                buildFormattedPlayerPing(context.getSource().getPlayer(), true, true)));
+                buildOutput(context.getSource().getPlayer(), true, isServerConsoleOutput)));
         return 1;
     }
 
     @Override
     protected int executeParameterized(final CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
-        ServerPlayerEntity player = EntityArgumentType.getPlayer(context, "player");
-        boolean playerIsCommander = player.equals(context.getSource().getPlayer());
-        boolean shouldFormatColor = context.getSource().isExecutedByPlayer();
+        final ServerPlayerEntity playerArgument = EntityArgumentType.getPlayer(context, "player");
+        final boolean playerIsCommander = playerArgument.equals(context.getSource().getPlayer());
+        final boolean isServerConsoleOutput = !context.getSource().isExecutedByPlayer();
         
-        context.getSource().sendMessage(Text.literal(buildFormattedPlayerPing(player, playerIsCommander, shouldFormatColor)));
+        context.getSource().sendMessage(Text.literal(buildOutput(playerArgument, playerIsCommander, isServerConsoleOutput)));
         return 1;
     }
 
-    private String buildFormattedPlayerPing(final ServerPlayerEntity player, final boolean playerIsCommander, final boolean shouldFormatColor) {
-        StringBuilder formattedPlayerPing = new StringBuilder();
+    private String buildOutput(final ServerPlayerEntity playerArgument, final boolean playerIsCommander, final boolean isServerConsoleOutput) {
+        final CommandOutputBuilder outputBuilder = new CommandOutputBuilder(isServerConsoleOutput);
         
         if (playerIsCommander) {
-            formattedPlayerPing.append(
-                shouldFormatColor
-                    ? Formatter.formatColor("Your ", Formatter.Color.GOLD)
-                    : player.getEntityName());
+            outputBuilder.append("Your ", CommandOutputBuilder.Color.GOLD);
         }
         else {
-            formattedPlayerPing.append(
-                shouldFormatColor
-                    ? Formatter.formatColor(player.getEntityName(), Formatter.Color.GOLD)
-                    : player.getEntityName());
-            formattedPlayerPing.append("'s ");
+            outputBuilder.append(playerArgument.getEntityName(), CommandOutputBuilder.Color.GOLD);
+            outputBuilder.append("'s ");
         }
 
-        formattedPlayerPing.append(
-            shouldFormatColor
-                ? Formatter.formatColor("Ping", Formatter.Color.AQUA)
-                : "ping");
-        formattedPlayerPing.append(": ");
+        outputBuilder.append("Ping", CommandOutputBuilder.Color.AQUA);
+        outputBuilder.append(": ");
 
-        formattedPlayerPing.append(
-            shouldFormatColor
-                ? Formatter.formatColor(String.valueOf(player.pingMilliseconds),
-                    Formatter.rateNumByLowerBound(player.pingMilliseconds, 50, 150, 300))
-                : player.pingMilliseconds);
-        formattedPlayerPing.append("ms");
+        outputBuilder.rateByLowerBoundAndAppend(playerArgument.pingMilliseconds, 50, 150, 300, true, false);
+        outputBuilder.append("ms");
 
-        return formattedPlayerPing.toString();
+        return outputBuilder.toString();
     }
 }
