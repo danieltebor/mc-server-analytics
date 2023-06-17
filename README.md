@@ -2,7 +2,7 @@
 # MC Server Analytics
 [![License](https://img.shields.io/github/license/danieltebor/mc-server-analytics)]()
 [![Tag](https://img.shields.io/github/v/tag/danieltebor/mc-server-analytics)]()<br>
-MC Server Analytics is a lightweight server monitoring mod that adds utils for admins & players to analyze their server.
+MC Server Analytics is a lightweight Fabric server mod that adds utils for admins & players to analyze their server.
 
 ### Commands
 - /cpu (shows cpu thread load, overall load, and temperature)
@@ -18,7 +18,7 @@ MC Server Analytics is a lightweight server monitoring mod that adds utils for a
 - displaying cpu usage/memory on a client-side leaderboard
 
 ## Installation
-### Requirements
+### Dependencies
 - [Fabric Server](https://fabricmc.net/use/server/)
 - [Fabric API](https://github.com/username/repository)
 
