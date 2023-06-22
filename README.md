@@ -10,6 +10,7 @@ MC Server Analytics is a lightweight Fabric server mod that adds utils for admin
 - /entity-info \<dimension\> (shows number of entities)
 - /mcsa-help (describes each command usage)
 - /mem (shows server memory usage)
+- /mspt (Shows avg milliseconds per tick (MSPT) for 5s, 15s, 1m, 5m, and 15m)
 - /perf-sum (shows summary of server telemetry)
 - /ping-avg (shows your ping or ping of specified player)
 - /ping \<player\> (shows your ping or ping of specified player)
