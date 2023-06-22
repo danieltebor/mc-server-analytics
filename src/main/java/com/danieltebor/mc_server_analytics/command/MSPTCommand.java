@@ -41,7 +41,7 @@ public class MSPTCommand extends MCServerAnalyticsCommand {
 
     public static String NAME = "mspt";
     public static String[][] ARG_NAMES = {};
-    public static String DESCRITPION = "Shows milliseconds per tick (mspt)";
+    public static String DESCRITPION = "Shows avg server milliseconds per tick (mspt) for 5s, 15s, 1m, 5m, and 15m";
 
     MSPTCommand() {
         super(NAME, ARG_NAMES, DESCRITPION);
