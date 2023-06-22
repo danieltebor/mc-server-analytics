@@ -20,17 +20,14 @@
  * SOFTWARE.
  */
 
-package com.danieltebor.mc_server_analytics.command.commands;
-
-
+package com.danieltebor.mc_server_analytics.command;
 
 import com.danieltebor.mc_server_analytics.MCServerAnalytics;
-import com.danieltebor.mc_server_analytics.command.CommandOutputBuilder;
-import com.danieltebor.mc_server_analytics.command.MCServerAnalyticsCommand;
-import com.danieltebor.mc_server_analytics.util.CPUInfoTracker;
+import com.danieltebor.mc_server_analytics.accessor.ServerChunkManagerAccessor;
+import com.danieltebor.mc_server_analytics.tracker.CPUInfoTracker;
+import com.danieltebor.mc_server_analytics.tracker.WorldFileInfoTracker;
 import com.danieltebor.mc_server_analytics.util.MemInfo;
-import com.danieltebor.mc_server_analytics.util.WorldFileInfoTracker;
-import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 
@@ -38,15 +35,13 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.OptionalDouble;
 
-import net.minecraft.command.CommandRegistryAccess;
 import net.minecraft.entity.ItemEntity;
 import net.minecraft.entity.LivingEntity;
-import net.minecraft.server.command.CommandManager;
-import net.minecraft.server.command.CommandManager.RegistrationEnvironment;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.TypeFilter;
+import net.minecraft.world.chunk.WorldChunk;
 
 /**
  * @author Daniel Tebor
@@ -62,11 +57,8 @@ public final class PerformanceSummaryCommand extends MCServerAnalyticsCommand {
     }
 
     @Override
-    public void register(final CommandDispatcher<ServerCommandSource> dispatcher,
-                         final CommandRegistryAccess registryAccess,
-                         final RegistrationEnvironment registrationEnvironment) {
-        dispatcher.register(CommandManager.literal("perf-sum")
-            .executes(this::executeDefault));
+    protected LiteralArgumentBuilder<ServerCommandSource> getArgumentBuilderImpl() {
+        return getDefaultArgumentBuilder();
     }
 
     @Override
@@ -83,8 +75,19 @@ public final class PerformanceSummaryCommand extends MCServerAnalyticsCommand {
         final int[] entitySums = {0, 0};
         
         context.getSource().getServer().getWorlds().forEach((world) -> {
-            chunksLoadedSum[0] += world.getChunkManager().getTotalChunksLoadedCount();
-
+            final int[] loadedChunkInfo = {0, 0};
+            ((ServerChunkManagerAccessor) world.getChunkManager()).getChunkHolderEntryIterator().forEach((chunkHolder) -> {
+                WorldChunk worldChunk = chunkHolder.getWorldChunk();
+                if (worldChunk != null) {
+                    loadedChunkInfo[0]++;
+                    loadedChunkInfo[1] = worldChunk.countVerticalSections();
+                }
+            });
+            if (loadedChunkInfo[1] != 0){
+                loadedChunkInfo[0] = loadedChunkInfo[0] / loadedChunkInfo[1];
+            }
+            chunksLoadedSum[0] += loadedChunkInfo[0];
+ 
             entitySums[0] += world.getEntitiesByType(TypeFilter.instanceOf(LivingEntity.class), entity -> true).size();
             entitySums[1] += world.getEntitiesByType(TypeFilter.instanceOf(ItemEntity.class), entity -> true).size();
         });
@@ -123,30 +126,36 @@ public final class PerformanceSummaryCommand extends MCServerAnalyticsCommand {
         TPSCommand.appendOutput(outputBuilder, CommandOutputBuilder.Color.DARK_AQUA);
         outputBuilder.append("\n");
 
+        // MSPT.
+        outputBuilder.append("MSPT", CommandOutputBuilder.Color.GOLD);
+
+        MSPTCommand.appendOutput(outputBuilder, CommandOutputBuilder.Color.DARK_AQUA);
+        outputBuilder.append("\n");
+
         // CPU load.
         final CPUInfoTracker cpuInfoTracker = MCServerAnalytics.getInstance().getCpuInfoTracker();
-        final double cpuLoad = cpuInfoTracker.getOverallLoad() * 100;
+        final double cpuLoad = cpuInfoTracker.getOverallLoad();
         final OptionalDouble maxThreadLoad = Arrays.stream(cpuInfoTracker.getThreadLoads()).max();
 
         outputBuilder.append("CPU Load", CommandOutputBuilder.Color.GOLD);
         outputBuilder.append("\n| ");
 
-        if (cpuInfoTracker.loadIsAvailable() && maxThreadLoad.isPresent()) {
+        if (cpuLoad != -100 && maxThreadLoad.isPresent()) {
             if (!isServerConsoleOutput) {
-                outputBuilder.buildUtilizationBarAndAppend(cpuLoad * 10, 0, 1025, 25, CommandOutputBuilder.Color.LIGHT_PURPLE);
+                outputBuilder.buildUtilizationBarAndAppend(cpuLoad, 0, 100, 40, CommandOutputBuilder.Color.LIGHT_PURPLE);
                 outputBuilder.append("\n| ");
             }
 
             outputBuilder.append("Overall Load", CommandOutputBuilder.Color.LIGHT_PURPLE);
             outputBuilder.append(": ");
 
-            outputBuilder.rateByLowerBoundAndAppend(cpuLoad, 90, 95, 98, true, false);
+            outputBuilder.rateByLowerBoundAndAppend(cpuLoad, 90, 95, 98, false);
             outputBuilder.append("%\n| ");
 
             outputBuilder.append("Max Thread Load", CommandOutputBuilder.Color.DARK_PURPLE);
             outputBuilder.append(": ");
 
-            outputBuilder.rateByLowerBoundAndAppend(maxThreadLoad.getAsDouble() * 100, 90, 95, 98, true, false);
+            outputBuilder.rateByLowerBoundAndAppend(maxThreadLoad.getAsDouble() * 100, 90, 95, 98, false);
             outputBuilder.append("%\n");
         }
         else {
@@ -157,10 +166,10 @@ public final class PerformanceSummaryCommand extends MCServerAnalyticsCommand {
         // Memory usage.
         final long usedMemory = MemInfo.toMB(MemInfo.getTotalUsedMemory());
         final long committedMemory = MemInfo.toMB(MemInfo.getTotalCommittedMemory());
-        final long maxMemory = MemInfo.toMB(MemInfo.getMaxMemory());
+        final long maxMemory = MemInfo.toMB(MemInfo.getTotalMaxMemory());
 
-        MEMCommand.appendMemoryUsageSegment(outputBuilder, "Used", 
-            usedMemory, committedMemory, maxMemory, isServerConsoleOutput);
+        MEMCommand.appendMemoryUsageSegment(outputBuilder, "Used Memory", 
+            usedMemory, committedMemory, maxMemory, true, isServerConsoleOutput);
 
         // World size.
         
@@ -169,7 +178,7 @@ public final class PerformanceSummaryCommand extends MCServerAnalyticsCommand {
         outputBuilder.append("World Size", CommandOutputBuilder.Color.GOLD);
         outputBuilder.append(": ");
 
-        if (!worldFileInfoTracker.isTracking() && worldFileInfoTracker.getWorldSizeBytes() == -1) {
+        if (!worldFileInfoTracker.isAlive() && worldFileInfoTracker.getWorldSizeBytes() == -1) {
             outputBuilder.append("UNAVAILABLE", CommandOutputBuilder.Color.DARK_RED);
         }
         else {

@@ -22,8 +22,8 @@
 
 package com.danieltebor.mc_server_analytics.mixin;
 
-import com.danieltebor.mc_server_analytics.extension.MinecraftServerTPSExtension;
-import com.danieltebor.mc_server_analytics.util.TPSTracker;
+import com.danieltebor.mc_server_analytics.accessor.MinecraftServerAccessor;
+import com.danieltebor.mc_server_analytics.tracker.TickInfoTracker;
 
 import net.minecraft.server.MinecraftServer;
 
@@ -35,32 +35,27 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
 
 /**
  * @author Daniel Tebor
  */
 @Mixin(MinecraftServer.class)
-@Implements({@Interface(iface = MinecraftServerTPSExtension.class, prefix = "mcServerAnalytics$")})
+@Implements({@Interface(iface = MinecraftServerAccessor.class, prefix = "mcServerAnalytics$")})
 public abstract class MinecraftServerMixin {
-    private final TPSTracker tickTimesNS5s = new TPSTracker(5);
-    private final TPSTracker tickTimesNS15s = new TPSTracker(15);
-    private final TPSTracker tickTimesNS1m = new TPSTracker(60);
-    private final TPSTracker tickTimesNS5m = new TPSTracker(60 * 5);
-    private final TPSTracker tickTimesNS15m = new TPSTracker(60 * 15);
+    private final TickInfoTracker tickTimesNS5s = new TickInfoTracker(5);
+    private final TickInfoTracker tickTimesNS15s = new TickInfoTracker(15);
+    private final TickInfoTracker tickTimesNS1m = new TickInfoTracker(60);
+    private final TickInfoTracker tickTimesNS5m = new TickInfoTracker(60 * 5);
+    private final TickInfoTracker tickTimesNS15m = new TickInfoTracker(60 * 15);
 
-    private long prevTickEndTimeNS = System.nanoTime();
-
-    @Inject(method = "tick", at = @At("RETURN"))
-    private void injectTick(BooleanSupplier shouldKeepTicking, CallbackInfo ci) {
-        long tickStartTimeNS = System.nanoTime();
-        long tickTimeNS = tickStartTimeNS - prevTickEndTimeNS;
-        prevTickEndTimeNS = tickStartTimeNS;
-
-        tickTimesNS5s.submitTickTimeNS(tickTimeNS);
-        tickTimesNS15s.submitTickTimeNS(tickTimeNS);
-        tickTimesNS1m.submitTickTimeNS(tickTimeNS);
-        tickTimesNS5m.submitTickTimeNS(tickTimeNS);
-        tickTimesNS15m.submitTickTimeNS(tickTimeNS);
+    @Inject(method = "tick", at = @At("RETURN"), locals = LocalCapture.CAPTURE_FAILHARD)
+    private void injected(final BooleanSupplier shouldKeepTicking, final CallbackInfo ci, final long tickStartTimeNS, final long tickDurationNS) {
+        tickTimesNS5s.submitTickTimeNS(tickDurationNS);
+        tickTimesNS15s.submitTickTimeNS(tickDurationNS);
+        tickTimesNS1m.submitTickTimeNS(tickDurationNS);
+        tickTimesNS5m.submitTickTimeNS(tickDurationNS);
+        tickTimesNS15m.submitTickTimeNS(tickDurationNS);
     }
 
     public float mcServerAnalytics$getTPS5s() {
@@ -81,5 +76,25 @@ public abstract class MinecraftServerMixin {
 
     public float mcServerAnalytics$getTPS15m() {
         return tickTimesNS15m.getTPS();
+    }
+
+    public float mcServerAnalytics$getMSPT5s() {
+        return tickTimesNS5s.getMSPT();
+    }
+
+    public float mcServerAnalytics$getMSPT15s() {
+        return tickTimesNS15s.getMSPT();
+    }
+
+    public float mcServerAnalytics$getMSPT1m() {
+        return tickTimesNS1m.getMSPT();
+    }
+
+    public float mcServerAnalytics$getMSPT5m() {
+        return tickTimesNS5m.getMSPT();
+    }
+
+    public float mcServerAnalytics$getMSPT15m() {
+        return tickTimesNS15m.getMSPT();
     }
 }

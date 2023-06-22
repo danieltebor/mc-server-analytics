@@ -20,7 +20,7 @@
  * SOFTWARE.
  */
 
-package com.danieltebor.mc_server_analytics.util;
+package com.danieltebor.mc_server_analytics.tracker;
 
 import oshi.SystemInfo;
 import oshi.hardware.CentralProcessor;
@@ -29,33 +29,30 @@ import oshi.hardware.Sensors;
 /**
  * @author Daniel Tebor
  */
-public class CPUInfoTracker {
+public class CPUInfoTracker extends Tracker {
+
+    private static final long REFRESH_WAIT_TIME = 1000;
     
     private final SystemInfo si = new SystemInfo();
     private final CentralProcessor processor = si.getHardware().getProcessor();
-    private final Sensors sensors = si.getHardware().getSensors();
 
-    private final Thread loadTracker = new Thread(this::trackCPULoad);
-    private volatile boolean loadTrackerShouldRun = true;
-    private long[] prevTicks = processor.getSystemCpuLoadTicks();
-    private long[][] prevProcTicks = processor.getProcessorCpuLoadTicks();
     private double overallLoad;
     private double[] threadLoads;
+    
+    private final Sensors sensors = si.getHardware().getSensors();
     private boolean tempSensorIsAvailable = true;
 
     public CPUInfoTracker() {
-        overallLoad = processor.getSystemCpuLoadBetweenTicks(prevTicks);
-        threadLoads = processor.getProcessorCpuLoadBetweenTicks(prevProcTicks);
-
-        loadTracker.start();
+        overallLoad = processor.getSystemCpuLoadBetweenTicks(processor.getSystemCpuLoadTicks());
+        threadLoads = processor.getProcessorCpuLoadBetweenTicks(processor.getProcessorCpuLoadTicks());
     }
 
-    private void trackCPULoad() {
-        while(loadTrackerShouldRun) {
-            try {
-                Thread.sleep(1000);
-            } catch(InterruptedException e) {}
+    @Override
+    protected void trackImpl() throws InterruptedException {
+        long[] prevTicks = processor.getSystemCpuLoadTicks();
+        long[][] prevProcTicks = processor.getProcessorCpuLoadTicks();
 
+        while (shouldTrack()) {
             synchronized (this) {
                 overallLoad = processor.getSystemCpuLoadBetweenTicks(prevTicks);
                 threadLoads = processor.getProcessorCpuLoadBetweenTicks(prevProcTicks);
@@ -63,16 +60,10 @@ public class CPUInfoTracker {
 
             prevTicks = processor.getSystemCpuLoadTicks();
             prevProcTicks = processor.getProcessorCpuLoadTicks();
-        }
-    }
 
-    public void close() {
-        loadTrackerShouldRun = false;
-        try {
-            loadTracker.join();
-        }
-        catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+            synchronized (lock) {
+                lock.wait(REFRESH_WAIT_TIME);
+            }
         }
     }
 
@@ -81,35 +72,35 @@ public class CPUInfoTracker {
     }
 
     public long getMaxCoreFreqHz() {
-        long[] coreFreqs = getCoreFreqsHz();
+        final long[] coreFreqs = getCoreFreqsHz();
         long maxFreq = 0;
+        
         for (long freq : coreFreqs) {
             if (freq > maxFreq) {
                 maxFreq = freq;
             }
         }
+
         return maxFreq;
     }
 
     public double[] getCoreFreqsGHz() {
-        long[] coreFreqsHz = getCoreFreqsHz();
-        double[] coreFreqsGHz = new double[coreFreqsHz.length];
+        final long[] coreFreqsHz = getCoreFreqsHz();
+        final double[] coreFreqsGHz = new double[coreFreqsHz.length];
+
         for (int i = 0; i < coreFreqsHz.length; i++) {
             coreFreqsGHz[i] = coreFreqsHz[i] / 1e9;
         }
+
         return coreFreqsGHz;
     }
 
-    public double getMaxCoreFreqGHz() {
-        return getMaxCoreFreqHz() / 1e9;
+    public float getMaxCoreFreqGHz() {
+        return (float) (getMaxCoreFreqHz() / 1e9);
     }
 
     public synchronized double getOverallLoad() {
-        return overallLoad;
-    }
-
-    public boolean loadIsAvailable() {
-        return getOverallLoad() != 0.0;
+        return overallLoad != 0.0 ? overallLoad : -1;
     }
 
     public synchronized double[] getThreadLoads() {
@@ -122,13 +113,15 @@ public class CPUInfoTracker {
 
     public double getTempCelc() {
         if (!tempSensorIsAvailable) {
-            return 0.0;
+            return -1;
         }
 
         double temp = sensors.getCpuTemperature();
         if (temp == 0.0) {
             tempSensorIsAvailable = false;
+            return -1;
         }
+
         return temp;
     }
 }

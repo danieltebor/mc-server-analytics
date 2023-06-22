@@ -20,22 +20,17 @@
  * SOFTWARE.
  */
 
-package com.danieltebor.mc_server_analytics.command.commands;
+package com.danieltebor.mc_server_analytics.command;
 
-import com.danieltebor.mc_server_analytics.command.CommandOutputBuilder;
-import com.danieltebor.mc_server_analytics.command.MCServerAnalyticsCommand;
 import com.danieltebor.mc_server_analytics.util.MemInfo;
 
-import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 
 import java.util.Arrays;
 import java.util.List;
 
-import net.minecraft.command.CommandRegistryAccess;
-import net.minecraft.server.command.CommandManager;
-import net.minecraft.server.command.CommandManager.RegistrationEnvironment;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.text.Text;
 
@@ -53,11 +48,8 @@ public final class MEMCommand extends MCServerAnalyticsCommand {
     }
 
     @Override
-    public void register(final CommandDispatcher<ServerCommandSource> dispatcher,
-                         final CommandRegistryAccess registryAccess,
-                         final RegistrationEnvironment registrationEnvironment) {
-        dispatcher.register(CommandManager.literal("mem")
-            .executes(this::executeDefault));
+    protected LiteralArgumentBuilder<ServerCommandSource> getArgumentBuilderImpl() {
+        return getDefaultArgumentBuilder();
     }
 
     @Override
@@ -67,16 +59,17 @@ public final class MEMCommand extends MCServerAnalyticsCommand {
             return 0;
         }
 
-        final long maxMemory = MemInfo.toMB(MemInfo.getMaxMemory());
-
         final long usedHeapMemory = MemInfo.toMB(MemInfo.getUsedHeapMemory());
         final long committedHeapMemory = MemInfo.toMB(MemInfo.getCommittedHeapMemory());
+        final long maxHeapMemory = MemInfo.toMB(MemInfo.getMaxHeapMemory());
 
         final long usedNonHeapMemory = MemInfo.toMB(MemInfo.getUsedNonHeapMemory());
         final long committedNonHeapMemory = MemInfo.toMB(MemInfo.getCommittedNonHeapMemory());
+        final long maxNonHeapMemory = MemInfo.toMB(MemInfo.getMaxNonHeapMemory());
 
-        final long usedTotalMemory = MemInfo.toMB(MemInfo.getTotalUsedMemory());
-        final long committedTotalMemory = MemInfo.toMB(MemInfo.getTotalCommittedMemory());
+        final long totalUsedMemory = MemInfo.toMB(MemInfo.getTotalUsedMemory());
+        final long totalCommittedMemory = MemInfo.toMB(MemInfo.getTotalCommittedMemory());
+        final long totalMaxMemory = MemInfo.toMB(MemInfo.getTotalMaxMemory());
 
         final CommandOutputBuilder outputBuilder = new CommandOutputBuilder("\n", false);
         
@@ -84,20 +77,21 @@ public final class MEMCommand extends MCServerAnalyticsCommand {
         outputBuilder.append("\n=====================\n");
         
         appendMemoryUsageSegment(outputBuilder, "Heap",
-            usedHeapMemory, committedHeapMemory, maxMemory, false);
+            usedHeapMemory, committedHeapMemory, maxHeapMemory, true, false);
 
-        appendMemoryUsageSegment(outputBuilder, "Non-heap",
-            usedNonHeapMemory, committedNonHeapMemory, maxMemory, false);
+        appendMemoryUsageSegment(outputBuilder, "Non-Heap",
+            usedNonHeapMemory, committedNonHeapMemory, maxNonHeapMemory, false, false);
 
         appendMemoryUsageSegment(outputBuilder, "Total",
-            usedTotalMemory, committedTotalMemory, maxMemory, false);
+            totalUsedMemory, totalCommittedMemory, totalMaxMemory, true, false);
 
         context.getSource().sendMessage(Text.literal(outputBuilder.toString()));
         return 1;
     }
 
-    public static void appendMemoryUsageSegment(final CommandOutputBuilder outputBuilder, final String memoryType,
-                                          final long usedMemory, final long committedMemory, final long maxMemory, final boolean isServerConsoleOutput) {
+    protected static void appendMemoryUsageSegment(final CommandOutputBuilder outputBuilder, final String memoryType,
+                                          final long usedMemory, final long committedMemory, final long maxMemory, 
+                                          final boolean shouldRateMemory, final boolean isServerConsoleOutput) {
         final List<Double> memoryUtilizations = Arrays.asList(
             (double) usedMemory, (double) committedMemory);
 
@@ -105,38 +99,42 @@ public final class MEMCommand extends MCServerAnalyticsCommand {
             CommandOutputBuilder.Color.LIGHT_PURPLE, CommandOutputBuilder.Color.DARK_PURPLE);
         
         outputBuilder.append(memoryType, CommandOutputBuilder.Color.GOLD);
-        outputBuilder.append(" Memory", CommandOutputBuilder.Color.GOLD);
         outputBuilder.append("\n| ");                                       
 
         if (!isServerConsoleOutput) {
             outputBuilder.buildUtilizationBarAndAppend(memoryUtilizations,
-                0, (int) maxMemory, (int) maxMemory / 40, colors);
+                0, maxMemory, 40, colors);
             outputBuilder.append("\n| ");
         }
 
         appendLabeledMemoryUsage(outputBuilder, "Used", colors.get(0),
-            usedMemory, maxMemory);
+            usedMemory, maxMemory, shouldRateMemory);
         outputBuilder.append("\n| ");
 
         appendLabeledMemoryUsage(outputBuilder, "Committed", colors.get(1),
-            committedMemory, maxMemory);
+            committedMemory, maxMemory, false);
         outputBuilder.append("\n");
     }
 
     private static void appendLabeledMemoryUsage(final CommandOutputBuilder outputBuilder, final String label, final CommandOutputBuilder.Color color,
-                                          final long memoryUtilization, final long maxMemory) {
+                                          final long memoryUtilization, final long maxMemory, final boolean shouldRateMemory) {
         outputBuilder.append(label, color);
         outputBuilder.append(": ");
 
-        outputBuilder.rateByLowerBoundAndAppend(
-            memoryUtilization,
-            maxMemory - 3 * (maxMemory / 10),
-            maxMemory - 2 * (maxMemory / 10),
-            maxMemory - maxMemory / 10,
-            false, true);
+        if (shouldRateMemory) {
+            outputBuilder.rateByLowerBoundAndAppend(
+                memoryUtilization,
+                maxMemory - 3 * (maxMemory / 10),
+                maxMemory - 2 * (maxMemory / 10),
+                maxMemory - maxMemory / 10,
+                true);
+        }
+        else {
+            outputBuilder.append(memoryUtilization, CommandOutputBuilder.Color.BLUE);
+        }
         outputBuilder.append("MB/");
 
-        outputBuilder.append(maxMemory, CommandOutputBuilder.Color.BLUE);
+        outputBuilder.append(maxMemory, CommandOutputBuilder.Color.DARK_AQUA);
         outputBuilder.append("MB");
     }
 }

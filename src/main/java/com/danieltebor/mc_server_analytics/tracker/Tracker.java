@@ -20,15 +20,47 @@
  * SOFTWARE.
  */
 
-package com.danieltebor.mc_server_analytics.extension;
+package com.danieltebor.mc_server_analytics.tracker;
 
 /**
  * @author Daniel Tebor
  */
-public interface MinecraftServerTPSExtension {
-    public float getTPS5s();
-    public float getTPS15s();
-    public float getTPS1m();
-    public float getTPS5m();
-    public float getTPS15m();
+public abstract class Tracker extends Thread {
+    
+    protected final Object lock = new Object();
+    
+    private volatile boolean shouldTrack = true;
+
+    public Tracker() {
+        setDaemon(true);
+    }
+
+    @Override
+    public final void run() {
+        try {
+            trackImpl();
+        }
+        catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    public final void close() {
+        shouldTrack = false;
+        synchronized(lock) {
+            lock.notify();
+        }
+
+        try {
+            join();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
+    protected abstract void trackImpl() throws InterruptedException;
+
+    protected boolean shouldTrack() {
+        return shouldTrack;
+    }
 }

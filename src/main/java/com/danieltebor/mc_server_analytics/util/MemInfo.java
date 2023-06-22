@@ -38,12 +38,30 @@ public abstract class MemInfo {
         return ManagementFactory.getMemoryMXBean().getHeapMemoryUsage().getUsed();
     }
 
+    public static long getMaxHeapMemory() {
+        MemoryUsage heapMemoryUsage = ManagementFactory.getMemoryMXBean().getHeapMemoryUsage();
+        return isMaxHeapMemoryDefined() ? heapMemoryUsage.getMax() : heapMemoryUsage.getCommitted();
+    }
+
+    public static boolean isMaxHeapMemoryDefined() {
+        return ManagementFactory.getMemoryMXBean().getHeapMemoryUsage().getMax() != -1;
+    }
+
     public static long getCommittedNonHeapMemory() {
         return ManagementFactory.getMemoryMXBean().getNonHeapMemoryUsage().getCommitted();
     }
 
     public static long getUsedNonHeapMemory() {
         return ManagementFactory.getMemoryMXBean().getNonHeapMemoryUsage().getUsed();
+    }
+
+    public static long getMaxNonHeapMemory() {
+        MemoryUsage nonHeapMemoryUsage = ManagementFactory.getMemoryMXBean().getNonHeapMemoryUsage();
+        return isMaxNonHeapMemoryDefined() ? nonHeapMemoryUsage.getMax() : nonHeapMemoryUsage.getCommitted();
+    }
+
+    public static boolean isMaxNonHeapMemoryDefined() {
+        return ManagementFactory.getMemoryMXBean().getNonHeapMemoryUsage().getMax() != -1;
     }
 
     public static long getTotalCommittedMemory() {
@@ -54,10 +72,12 @@ public abstract class MemInfo {
         return getUsedHeapMemory() + getUsedNonHeapMemory();
     }
 
-    public static long getMaxMemory() {
-        MemoryUsage heapMemoryUsage = ManagementFactory.getMemoryMXBean().getHeapMemoryUsage();
-        long max = heapMemoryUsage.getMax();
-        return max == -1 ? heapMemoryUsage.getCommitted() : max;
+    public static long getTotalMaxMemory() {
+        return getMaxHeapMemory() + getMaxNonHeapMemory();
+    }
+
+    public static boolean isTotalMaxMemoryDefined() {
+        return isMaxHeapMemoryDefined() || isMaxNonHeapMemoryDefined();
     }
 
     public static long toMB(long bytes) {
@@ -65,6 +85,6 @@ public abstract class MemInfo {
     }
 
     public static float toGB(long bytes) {
-        return bytes / (1024 * 1024 * 1024);
+        return (float) bytes / (1024 * 1024 * 1024);
     }
 }

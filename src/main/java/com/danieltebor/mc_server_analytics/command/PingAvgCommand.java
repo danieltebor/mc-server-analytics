@@ -20,21 +20,15 @@
  * SOFTWARE.
  */
 
-package com.danieltebor.mc_server_analytics.command.commands;
+package com.danieltebor.mc_server_analytics.command;
 
-import com.danieltebor.mc_server_analytics.command.CommandOutputBuilder;
-import com.danieltebor.mc_server_analytics.command.MCServerAnalyticsCommand;
-
-import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import net.minecraft.command.CommandRegistryAccess;
-import net.minecraft.server.command.CommandManager;
-import net.minecraft.server.command.CommandManager.RegistrationEnvironment;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
@@ -53,11 +47,8 @@ public final class PingAvgCommand extends MCServerAnalyticsCommand {
     }
 
     @Override
-    public void register(final CommandDispatcher<ServerCommandSource> dispatcher,
-                         final CommandRegistryAccess registryAccess,
-                         final RegistrationEnvironment registrationEnvironment) {
-        dispatcher.register(CommandManager.literal("ping-avg")
-            .executes(this::executeDefault));
+    protected LiteralArgumentBuilder<ServerCommandSource> getArgumentBuilderImpl() {
+        return getDefaultArgumentBuilder();
     }
     
     @Override
@@ -73,18 +64,18 @@ public final class PingAvgCommand extends MCServerAnalyticsCommand {
         return 1;
     }
 
-    public static void appendOutput(final CommandOutputBuilder outputBuilder, final List<ServerPlayerEntity> players) {
+    protected static void appendOutput(final CommandOutputBuilder outputBuilder, final List<ServerPlayerEntity> players) {
         final List<Integer> playerPings = new ArrayList<>(players.size());
         players.forEach((player) -> playerPings.add(player.pingMilliseconds));
-        final int avgPing;
+        final float avgPing;
         if (playerPings.size() > 0) {
-            avgPing = playerPings.stream().reduce(0, ((pingA, pingB) -> pingA + pingB)) / playerPings.size();
+            avgPing = (float) playerPings.stream().reduce(0, ((pingA, pingB) -> pingA + pingB)) / playerPings.size();
         }
         else {
             avgPing = 0;
         }
         
-        outputBuilder.rateByLowerBoundAndAppend(avgPing, 50, 150, 300, false, false);
+        outputBuilder.rateByLowerBoundAndAppend(avgPing, 50, 150, 300, false);
         outputBuilder.append("ms");
     }
 }

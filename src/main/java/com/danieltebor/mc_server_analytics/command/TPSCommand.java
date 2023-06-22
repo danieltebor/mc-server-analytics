@@ -20,22 +20,17 @@
  * SOFTWARE.
  */
 
-package com.danieltebor.mc_server_analytics.command.commands;
+package com.danieltebor.mc_server_analytics.command;
 
 import com.danieltebor.mc_server_analytics.MCServerAnalytics;
-import com.danieltebor.mc_server_analytics.command.CommandOutputBuilder;
-import com.danieltebor.mc_server_analytics.command.MCServerAnalyticsCommand;
-import com.danieltebor.mc_server_analytics.extension.MinecraftServerTPSExtension;
-
-import com.mojang.brigadier.CommandDispatcher;
+import com.danieltebor.mc_server_analytics.accessor.MinecraftServerAccessor;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 
 import java.util.AbstractMap;
 import java.util.stream.Stream;
 
-import net.minecraft.command.CommandRegistryAccess;
-import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.text.Text;
 
@@ -53,10 +48,8 @@ public final class TPSCommand extends MCServerAnalyticsCommand {
     }
 
     @Override
-    public void register(final CommandDispatcher<ServerCommandSource> dispatcher,
-                         final CommandRegistryAccess registryAccess,
-                         final CommandManager.RegistrationEnvironment registrationEnvironment) {
-        dispatcher.register(CommandManager.literal("tps").executes(this::executeDefault));
+    protected LiteralArgumentBuilder<ServerCommandSource> getArgumentBuilderImpl() {
+        return getDefaultArgumentBuilder();
     }
 
     @Override
@@ -70,21 +63,21 @@ public final class TPSCommand extends MCServerAnalyticsCommand {
         return 1;
     }
 
-    public static void appendOutput(final CommandOutputBuilder outputBuilder, CommandOutputBuilder.Color labelColor) {
-        final MinecraftServerTPSExtension tpsExtension = MCServerAnalytics.getInstance().getTPSExtension();
+    protected static void appendOutput(final CommandOutputBuilder outputBuilder, CommandOutputBuilder.Color labelColor) {
+        final MinecraftServerAccessor tickInfoAccessor = (MinecraftServerAccessor) MCServerAnalytics.getInstance().getServer();
 
         Stream.of(
-            new AbstractMap.SimpleImmutableEntry<String, Float>("5s", tpsExtension.getTPS5s()),
-            new AbstractMap.SimpleImmutableEntry<String, Float>("15s", tpsExtension.getTPS15s()),
-            new AbstractMap.SimpleImmutableEntry<String, Float>("1m", tpsExtension.getTPS1m()),
-            new AbstractMap.SimpleImmutableEntry<String, Float>("5m", tpsExtension.getTPS5m()),
-            new AbstractMap.SimpleImmutableEntry<String, Float>("15m", tpsExtension.getTPS15m())
+            new AbstractMap.SimpleImmutableEntry<String, Float>("5s", tickInfoAccessor.getTPS5s()),
+            new AbstractMap.SimpleImmutableEntry<String, Float>("15s", tickInfoAccessor.getTPS15s()),
+            new AbstractMap.SimpleImmutableEntry<String, Float>("1m", tickInfoAccessor.getTPS1m()),
+            new AbstractMap.SimpleImmutableEntry<String, Float>("5m", tickInfoAccessor.getTPS5m()),
+            new AbstractMap.SimpleImmutableEntry<String, Float>("15m", tickInfoAccessor.getTPS15m())
         ).forEach((tpsInfo) -> {
             outputBuilder.append(" | ");
             outputBuilder.append(tpsInfo.getKey(), labelColor);
             outputBuilder.append(": ");
 
-            outputBuilder.rateByUpperBoundAndAppend(tpsInfo.getValue(), 18, 12, 6, true, false);
+            outputBuilder.rateByUpperBoundAndAppend(tpsInfo.getValue(), 18, 12, 6, false);
         });
     }
 }

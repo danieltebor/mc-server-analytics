@@ -20,20 +20,14 @@
  * SOFTWARE.
  */
 
-package com.danieltebor.mc_server_analytics.command.commands;
+package com.danieltebor.mc_server_analytics.command;
 
 import com.danieltebor.mc_server_analytics.MCServerAnalytics;
-import com.danieltebor.mc_server_analytics.command.CommandOutputBuilder;
-import com.danieltebor.mc_server_analytics.command.MCServerAnalyticsCommand;
-import com.danieltebor.mc_server_analytics.util.CPUInfoTracker;
-
-import com.mojang.brigadier.CommandDispatcher;
+import com.danieltebor.mc_server_analytics.tracker.CPUInfoTracker;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 
-import net.minecraft.command.CommandRegistryAccess;
-import net.minecraft.server.command.CommandManager;
-import net.minecraft.server.command.CommandManager.RegistrationEnvironment;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.text.Text;
 
@@ -46,16 +40,13 @@ public final class CPUCommand extends MCServerAnalyticsCommand {
     public static final String[][] ARG_NAMES = {};
     public static final String DESCRIPTION = "Shows cpu thread load, overall load, and temperature";
 
-    public CPUCommand() {
+    CPUCommand() {
         super(NAME, ARG_NAMES, DESCRIPTION);
     }
 
     @Override
-    public void register(final CommandDispatcher<ServerCommandSource> dispatcher,
-                         final CommandRegistryAccess registryAccess,
-                         final RegistrationEnvironment registrationEnvironment) {
-        dispatcher.register(CommandManager.literal("cpu")
-            .executes(this::executeDefault));
+    protected LiteralArgumentBuilder<ServerCommandSource> getArgumentBuilderImpl() {
+        return getDefaultArgumentBuilder();
     }
 
     @Override
@@ -69,7 +60,8 @@ public final class CPUCommand extends MCServerAnalyticsCommand {
         final double[] threadLoads = cpuInfoTracker.getThreadLoads();
         final double overallLoad = cpuInfoTracker.getOverallLoad() * 100;
 
-        if (!cpuInfoTracker.loadIsAvailable()) {
+        if (overallLoad == -100) {
+            System.out.println(overallLoad);
             context.getSource().sendError(Text.literal("/cpu command is not available. This could be due to driver or hardware issues."));
             return 0;
         }
@@ -83,10 +75,10 @@ public final class CPUCommand extends MCServerAnalyticsCommand {
         for (int i = 0; i < threadLoads.length; i++) {
             double threadLoad = threadLoads[i] * 100;
 
-            outputBuilder.buildUtilizationBarAndAppend(threadLoad, 0, 100, 5, CommandOutputBuilder.Color.LIGHT_PURPLE);
+            outputBuilder.buildUtilizationBarAndAppend(threadLoad, 0, 100, 20, CommandOutputBuilder.Color.LIGHT_PURPLE);
             outputBuilder.append(" ");
 
-            outputBuilder.rateByLowerBoundAndAppend(threadLoad, 90, 95, 98, true, false);
+            outputBuilder.rateByLowerBoundAndAppend(threadLoad, 90, 95, 98, false);
             outputBuilder.append("% (");
 
             outputBuilder.append("CPU ", CommandOutputBuilder.Color.GOLD);
@@ -98,18 +90,18 @@ public final class CPUCommand extends MCServerAnalyticsCommand {
         outputBuilder.append("Overall Load", CommandOutputBuilder.Color.GOLD);
         outputBuilder.append(": ");
 
-        outputBuilder.rateByLowerBoundAndAppend(overallLoad, 90, 95, 98, true, false);
+        outputBuilder.rateByLowerBoundAndAppend(overallLoad, 90, 95, 98, false);
         outputBuilder.append("%\n");
 
         // CPU temp.
         final double tempCelc = cpuInfoTracker.getTempCelc();
-        final boolean tempCelcIsAvailable = tempCelc != 0.0;
+        final boolean tempCelcIsAvailable = tempCelc != -1;
 
         outputBuilder.append("Temp", CommandOutputBuilder.Color.GOLD);
         outputBuilder.append(": ");
 
         if (tempCelcIsAvailable) {
-            outputBuilder.rateByLowerBoundAndAppend(tempCelc, 70, 80, 90, true, false);
+            outputBuilder.rateByLowerBoundAndAppend(tempCelc, 70, 80, 90, false);
         }
         else {
             outputBuilder.append("UNAVAILABLE", CommandOutputBuilder.Color.DARK_RED);

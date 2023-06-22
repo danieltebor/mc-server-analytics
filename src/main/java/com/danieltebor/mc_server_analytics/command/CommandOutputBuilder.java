@@ -1,8 +1,33 @@
+/*
+ * Copyright (C) 2011 - 2020 Olivier Biot
+ * 
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of
+ * this software and associated documentation files (the "Software"), to deal in
+ * the Software without restriction, including without limitation the rights to
+ * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+ * of the Software, and to permit persons to whom the Software is furnished to do
+ * so, subject to the following conditions:
+ * 
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
 package com.danieltebor.mc_server_analytics.command;
 
 import java.util.Collections;
 import java.util.List;
 
+/**
+ * @author Daniel Tebor
+ */
 public class CommandOutputBuilder {
     
     public static enum Color {
@@ -102,7 +127,7 @@ public class CommandOutputBuilder {
     }
 
     public void buildUtilizationBarAndAppend(final double utilization,
-                                             final int lowerBound, final int upperBound, final int stepSize,
+                                             final double lowerBound, final double upperBound, final int barLength,
                                              final Color color) {
         if (lowerBound > upperBound) {
             throw new IllegalArgumentException("lowerBound must be less than or equal to upperBound");
@@ -111,22 +136,24 @@ public class CommandOutputBuilder {
             throw new IllegalArgumentException("utilization must be between lowerBound and upperBound");
         }
         
-        int barProgress = lowerBound;
+        final double stepSize = (upperBound - lowerBound) / barLength;
+        double barProgress = lowerBound;
 
         append("[");
-        while (barProgress < utilization && barProgress < upperBound) {
-            append("|", color);
-            barProgress += stepSize;
-        }
-        while (barProgress < upperBound) {
-            append(".", Color.GRAY);
+        for (int i = 0; i < barLength; i++) {
+            if (barProgress < utilization) {
+                append("|", color);
+            }
+            else {
+                append(".", Color.GRAY);
+            }
             barProgress += stepSize;
         }
         append("]");
     }
 
     public void buildUtilizationBarAndAppend(final List<Double> utilizations,
-                                             final int lowerBound, final int upperBound, final int stepSize,
+                                             final double lowerBound, final double upperBound, final int barLength,
                                              final List<Color> colors) {
         if (lowerBound > upperBound) {
             throw new IllegalArgumentException("lowerBound must be less than or equal to upperBound");
@@ -136,8 +163,8 @@ public class CommandOutputBuilder {
         }
 
         Collections.sort(utilizations);
-        double minUtilization = utilizations.get(0);
-        double maxUtilization = utilizations.get(utilizations.size() - 1);
+        final double minUtilization = utilizations.get(0);
+        final double maxUtilization = utilizations.get(utilizations.size() - 1);
 
         if (minUtilization < lowerBound || minUtilization > upperBound) {
             throw new IllegalArgumentException("utilizations must be between lowerBound and upperBound");
@@ -148,18 +175,23 @@ public class CommandOutputBuilder {
         else if (utilizations.size() != colors.size()) {
             throw new IllegalArgumentException("utilizations and colors must be the same size");
         }
-
-        int barProgress = lowerBound;
+        
+        final double stepSize = (upperBound - lowerBound) / barLength;
+        double barProgress = lowerBound;
+        int utilizationIdx = 0;
 
         append("[");
-        for (int i = 0; i < utilizations.size(); i++) {
-            while (barProgress < utilizations.get(i) && barProgress < upperBound) {
-                append("|", colors.get(i));
-                barProgress += stepSize;
+        for (int i = 0; i < barLength; i++) {
+            if (utilizationIdx < utilizations.size() && barProgress < utilizations.get(utilizationIdx)) {
+                append("|", colors.get(utilizationIdx));
             }
-        }
-        while (barProgress < upperBound) {
-            append(".", Color.GRAY);
+            else if (utilizationIdx + 1 < utilizations.size() && barProgress < utilizations.get(utilizationIdx + 1)) {
+                ++utilizationIdx;
+                append("|", colors.get(utilizationIdx));
+            }
+            else {
+                append(".", Color.GRAY);
+            }
             barProgress += stepSize;
         }
         append("]");
@@ -167,7 +199,7 @@ public class CommandOutputBuilder {
 
     public void rateByUpperBoundAndAppend(final double num, final double goodThreshold, 
                                           final double moderateThreshold, final double badThreshold,
-                                          final boolean shouldFormatNum, final boolean shouldFlattenNum) {
+                                          final boolean shouldFlattenNum) {
         if (goodThreshold < moderateThreshold) {
             throw new IllegalArgumentException("goodThreshold must be greater than or equal to moderateThreshold");
         }
@@ -194,13 +226,13 @@ public class CommandOutputBuilder {
             append((int) num, color);
         }
         else {
-            append(num, shouldFormatNum, color);
+            append(num, true, color);
         }
     }
 
     public void rateByLowerBoundAndAppend(final double num, final double goodThreshold,
                                           final double moderateThreshold, final double badThreshold,
-                                          final boolean shouldFormatNum, final boolean shouldFlattenNum) {
+                                          final boolean shouldFlattenNum) {
         if (goodThreshold > moderateThreshold) {
             throw new IllegalArgumentException("goodThreshold must be less than or equal to moderateThreshold");
         }
@@ -227,7 +259,7 @@ public class CommandOutputBuilder {
             append((int) num, color);
         }
         else {
-            append(num, shouldFormatNum, color);
+            append(num, true, color);
         }
     }
 

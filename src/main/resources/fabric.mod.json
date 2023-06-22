@@ -1,7 +1,7 @@
 {
 	"schemaVersion": 1,
 	"id": "mc-server-analytics",
-	"version": "${version}",
+	"version": "1.1.1",
 	"name": "MC Server Analytics Mod",
 	"description": "MC Server Analytics provides server owners tools and utilities for analyzing and troubleshooting their servers.",
 	"authors": [
@@ -24,7 +24,7 @@
 	],
 	"depends": {
 		"fabricloader": ">=0.14.21",
-		"minecraft": "~1.20",
+        "minecraft": "~1.20",
 		"java": ">=17",
 		"fabric-api": "*"
 	},

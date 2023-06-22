@@ -22,18 +22,11 @@
 
 package com.danieltebor.mc_server_analytics;
 
-import com.danieltebor.mc_server_analytics.command.MCServerAnalyticsCommand;
-import com.danieltebor.mc_server_analytics.command.commands.*;
-import com.danieltebor.mc_server_analytics.extension.MinecraftServerTPSExtension;
-import com.danieltebor.mc_server_analytics.util.CPUInfoTracker;
-import com.danieltebor.mc_server_analytics.util.WorldFileInfoTracker;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Stream;
+import com.danieltebor.mc_server_analytics.command.Commands;
+import com.danieltebor.mc_server_analytics.tracker.CPUInfoTracker;
+import com.danieltebor.mc_server_analytics.tracker.WorldFileInfoTracker;
 
 import net.fabricmc.api.DedicatedServerModInitializer;
-import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 
 import net.minecraft.server.MinecraftServer;
@@ -45,46 +38,33 @@ public class MCServerAnalytics implements DedicatedServerModInitializer {
 
     private static MCServerAnalytics instance;
     
-    private final List<MCServerAnalyticsCommand> registeredCommands = new ArrayList<>();
-    private final CPUInfoTracker cpuInfoTracker = new CPUInfoTracker();
-    private final WorldFileInfoTracker worldFileInfoTracker = new WorldFileInfoTracker();
     private MinecraftServer server;
+    private CPUInfoTracker cpuInfoTracker = new CPUInfoTracker();
+    private WorldFileInfoTracker worldFileInfoTracker = new WorldFileInfoTracker();
     
     public MCServerAnalytics() {
         if (instance != null) {
-            throw new IllegalStateException("MCServerAnalytics has already been instantiated");
+            throw new IllegalStateException("Only One instance of MCServerAnalytics allowed");
         }
         instance = this;
     }
 
     @Override
     public void onInitializeServer() {
-        Stream.of(
-            new ChunkInfoCommand(),
-            new CPUCommand(),
-            new EntityInfoCommand(),
-            new HelpCommand(),
-            new MEMCommand(),
-            new PerformanceSummaryCommand(),
-            new PingAvgCommand(),
-            new PingCommand(),
-            new TPSCommand(),
-            new WorldSizeCommand()
-        ).forEach((command) -> {
-            CommandRegistrationCallback.EVENT.register(
-                (dispatcher, registryAccess, registrationEnvironment) -> command.register(dispatcher, registryAccess, registrationEnvironment));
-            registeredCommands.add(command);
-        });
+        cpuInfoTracker.start();
+        worldFileInfoTracker.start();
 
-        ServerLifecycleEvents.SERVER_STARTED.register((server) -> this.server = server);
+        Commands.registerCommands();
+
+        ServerLifecycleEvents.SERVER_STARTED.register((server) -> {
+            synchronized (this) {
+                this.server = server;
+            }
+        });
         ServerLifecycleEvents.SERVER_STOPPED.register((server) -> {
             cpuInfoTracker.close();
             worldFileInfoTracker.close();
         });
-    }
-
-    public List<MCServerAnalyticsCommand> getRegisteredCommands() {
-        return registeredCommands;
     }
 
     public CPUInfoTracker getCpuInfoTracker() {
@@ -95,12 +75,8 @@ public class MCServerAnalytics implements DedicatedServerModInitializer {
         return worldFileInfoTracker;
     }
 
-    public MinecraftServer getServer() {
+    public synchronized MinecraftServer getServer() {
         return server;
-    }
-
-    public MinecraftServerTPSExtension getTPSExtension() {
-        return (MinecraftServerTPSExtension) server;
     }
 
     public static MCServerAnalytics getInstance() {

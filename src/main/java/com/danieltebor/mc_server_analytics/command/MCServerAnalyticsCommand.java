@@ -22,15 +22,13 @@
 
 package com.danieltebor.mc_server_analytics.command;
 
-import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Objects;
 
-import net.minecraft.command.CommandRegistryAccess;
+import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 
@@ -38,22 +36,25 @@ import net.minecraft.server.command.ServerCommandSource;
  * @author Daniel Tebor
  */
 public abstract class MCServerAnalyticsCommand {
-    
-    public final static List<String> commands = new ArrayList<>();
 
     private final String name;
     private final String[][] argNames;
     private final String description;
 
-    public MCServerAnalyticsCommand(String name, String[][] argNames, String description) {
+    MCServerAnalyticsCommand(final String name, final String[][] argNames, final String description) {
         this.name = Objects.requireNonNull(name, "name must not be null");
         this.argNames = Objects.requireNonNull(argNames, "argNames must not be null");
         this.description = Objects.requireNonNull(description, "description must not be null");
+
+        CommandRegistrationCallback.EVENT.register(
+                (dispatcher, registryAccess, registrationEnvironment) -> dispatcher.register(getArgumentBuilderImpl()));
     }
 
-    public abstract void register(final CommandDispatcher<ServerCommandSource> dispatcher,
-                                  final CommandRegistryAccess registryAccess,
-                                  final CommandManager.RegistrationEnvironment registrationEnvironment);
+    protected abstract LiteralArgumentBuilder<ServerCommandSource> getArgumentBuilderImpl();
+
+    protected final LiteralArgumentBuilder<ServerCommandSource> getDefaultArgumentBuilder() {
+        return CommandManager.literal(name).executes(this::executeDefault);
+    }
 
     protected int executeDefault(final CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
         return 0;

@@ -20,43 +20,24 @@
  * SOFTWARE.
  */
 
-package com.danieltebor.mc_server_analytics.util;
+package com.danieltebor.mc_server_analytics.mixin;
 
-import java.util.ArrayDeque;
-import java.util.Queue;
+import net.minecraft.server.world.ChunkHolder;
+import net.minecraft.server.world.ServerChunkManager;
+
+import org.spongepowered.asm.mixin.Implements;
+import org.spongepowered.asm.mixin.Interface;
+import org.spongepowered.asm.mixin.Mixin;
+
+import com.danieltebor.mc_server_analytics.accessor.ServerChunkManagerAccessor;
 
 /**
  * @author Daniel Tebor
  */
-public class TPSTracker {
-
-    public final static int DESIRED_TPS = 20;
-    public final static long SEC_AS_NANO = 1_000_000_000;
-    public final static long DESIRED_TICK_TIME_NS = SEC_AS_NANO / DESIRED_TPS;
-
-    private final int ticksToTrack;
-    private Queue<Long> tickTimesNS;
-
-    public TPSTracker(final int secondsToTrack) {
-        if (secondsToTrack <= 0) {
-            throw new RuntimeException("secondsToTrack must be greater than 0");
-        }
-
-        ticksToTrack = secondsToTrack * DESIRED_TPS;
-        tickTimesNS = new ArrayDeque<Long>(ticksToTrack);
-        tickTimesNS.add(DESIRED_TICK_TIME_NS);
-    }
-
-    public void submitTickTimeNS(final long tickTimeNS) {
-        if (tickTimesNS.size() == ticksToTrack) {
-            tickTimesNS.remove();
-        }
-        tickTimesNS.add(tickTimeNS);
-    }
-
-    public float getTPS() {
-        long sum = tickTimesNS.stream().mapToLong(Long::longValue).sum();
-        float avgTickTime = (float) sum / tickTimesNS.size();
-        return (float) SEC_AS_NANO / avgTickTime;
+@Mixin(ServerChunkManager.class)
+@Implements({@Interface(iface = ServerChunkManagerAccessor.class, prefix = "mcServerAnalytics$")})
+public abstract class ServerChunkManagerMixin {
+    public Iterable<ChunkHolder> mcServerAnalytics$getChunkHolderEntryIterator() {
+        return ((ThreadedAnvilChunkStorageInvoker) ((ServerChunkManager)(Object)this).threadedAnvilChunkStorage).invokeEntryIterator();
     }
 }

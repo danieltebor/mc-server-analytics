@@ -20,19 +20,12 @@
  * SOFTWARE.
  */
 
-package com.danieltebor.mc_server_analytics.command.commands;
+package com.danieltebor.mc_server_analytics.command;
 
-import com.danieltebor.mc_server_analytics.MCServerAnalytics;
-import com.danieltebor.mc_server_analytics.command.CommandOutputBuilder;
-import com.danieltebor.mc_server_analytics.command.MCServerAnalyticsCommand;
-
-import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 
-import net.minecraft.command.CommandRegistryAccess;
-import net.minecraft.server.command.CommandManager;
-import net.minecraft.server.command.CommandManager.RegistrationEnvironment;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.text.Text;
 
@@ -49,15 +42,13 @@ public final class HelpCommand extends MCServerAnalyticsCommand {
     }
 
     @Override
-    public void register(final CommandDispatcher<ServerCommandSource> dispatcher,
-                         final CommandRegistryAccess registryAccess,
-                         final RegistrationEnvironment registrationEnvironment) {
-        dispatcher.register(CommandManager.literal("mcsa-help")
-            .executes(this::executeDefault));
+    protected LiteralArgumentBuilder<ServerCommandSource> getArgumentBuilderImpl() {
+        return getDefaultArgumentBuilder();
     }
 
     @Override
     protected int executeDefault(final CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
+        try{
         final boolean isServerConsoleOutput = !context.getSource().isExecutedByPlayer();
         final CommandOutputBuilder outputBuilder = new CommandOutputBuilder("\n", isServerConsoleOutput);
 
@@ -68,7 +59,7 @@ public final class HelpCommand extends MCServerAnalyticsCommand {
         outputBuilder.append("Help", CommandOutputBuilder.Color.AQUA);
         outputBuilder.append("\n====================");
 
-        MCServerAnalytics.getInstance().getRegisteredCommands().forEach((command) -> {
+        Commands.getRegisteredCommandsAlphabetized().forEach((command) -> {
             if (command.getName().equals(NAME)) {
                 return;
             }
@@ -77,6 +68,9 @@ public final class HelpCommand extends MCServerAnalyticsCommand {
         });
 
         context.getSource().sendMessage(Text.literal(outputBuilder.toString()));
+        } catch(Exception e) {
+            e.printStackTrace();
+        }
         return 1;
     }
 

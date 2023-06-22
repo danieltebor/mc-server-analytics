@@ -20,19 +20,14 @@
  * SOFTWARE.
  */
 
-package com.danieltebor.mc_server_analytics.command.commands;
+package com.danieltebor.mc_server_analytics.command;
 
-import com.danieltebor.mc_server_analytics.command.CommandOutputBuilder;
-import com.danieltebor.mc_server_analytics.command.MCServerAnalyticsCommand;
-
-import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 
-import net.minecraft.command.CommandRegistryAccess;
 import net.minecraft.command.argument.EntityArgumentType;
 import net.minecraft.server.command.CommandManager;
-import net.minecraft.server.command.CommandManager.RegistrationEnvironment;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.text.Text;
@@ -51,13 +46,10 @@ public final class PingCommand extends MCServerAnalyticsCommand {
     }
 
     @Override
-    public void register(final CommandDispatcher<ServerCommandSource> dispatcher,
-                         final CommandRegistryAccess registryAccess,
-                         final RegistrationEnvironment registrationEnvironment) {
-        dispatcher.register(CommandManager.literal("ping")
-            .executes(this::executeDefault)
-            .then(CommandManager.argument("player", EntityArgumentType.players())
-            .executes(this::executeParameterized)));
+    protected LiteralArgumentBuilder<ServerCommandSource> getArgumentBuilderImpl() {
+        return getDefaultArgumentBuilder()
+            .then(CommandManager.argument(ARG_NAMES[0][0], EntityArgumentType.players())
+            .executes(this::executeParameterized));
     }
 
     @Override
@@ -98,7 +90,7 @@ public final class PingCommand extends MCServerAnalyticsCommand {
         outputBuilder.append("Ping", CommandOutputBuilder.Color.AQUA);
         outputBuilder.append(": ");
 
-        outputBuilder.rateByLowerBoundAndAppend(playerArgument.pingMilliseconds, 50, 150, 300, true, false);
+        outputBuilder.rateByLowerBoundAndAppend(playerArgument.pingMilliseconds, 50, 150, 300, true);
         outputBuilder.append("ms");
 
         return outputBuilder.toString();
