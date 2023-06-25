@@ -44,17 +44,25 @@ public final class Commands {
             throw new IllegalStateException("Commands have already been registered");
         }
 
-        registerCommand(new ChunkInfoCommand());
-        registerCommand(new CPUCommand());
-        registerCommand(new EntityInfoCommand());
-        registerCommand(new HelpCommand());
-        registerCommand(new MEMCommand());
-        registerCommand(new MSPTCommand());
-        registerCommand(new PerformanceSummaryCommand());
-        registerCommand(new PingAvgCommand());
-        registerCommand(new PingCommand());
-        registerCommand(new TPSCommand());
-        registerCommand(new WorldSizeCommand());
+        final MCServerAnalyticsCommand[] commandsToRegister = {
+            new ChunkInfoCommand(),
+            new CPUCommand(),
+            new EntityInfoCommand(),
+            new HelpCommand(),
+            new MEMCommand(),
+            new MSPTCommand(),
+            new PerformanceSummaryCommand(),
+            new PingAvgCommand(),
+            new PingCommand(),
+            new TPSCommand(),
+            new WorldSizeCommand()
+        };
+
+        for (MCServerAnalyticsCommand command : commandsToRegister) {
+            if (command.isEnabled()) {
+                registerCommand(command);
+            }
+        }
 
         commandsHaveBeenRegistered = true;
     }

@@ -26,10 +26,8 @@ import com.danieltebor.mc_server_analytics.MCServerAnalytics;
 import com.danieltebor.mc_server_analytics.tracker.CPUInfoTracker;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
-import com.mojang.brigadier.exceptions.CommandSyntaxException;
 
 import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.text.Text;
 
 /**
  * @author Daniel Tebor
@@ -50,9 +48,9 @@ public final class CPUCommand extends MCServerAnalyticsCommand {
     }
 
     @Override
-    protected int executeDefault(final CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
-        if (!context.getSource().isExecutedByPlayer()) {
-            context.getSource().sendError(Text.literal("cpu command is not available in server console"));
+    protected int executeDefault(final CommandContext<ServerCommandSource> context, final boolean isServerConsoleOutput) {
+        if (isServerConsoleOutput) {
+            sendErrorOutput(context, "cpu command is not available in server console");
             return 0;
         }
 
@@ -61,8 +59,7 @@ public final class CPUCommand extends MCServerAnalyticsCommand {
         final double overallLoad = cpuInfoTracker.getOverallLoad() * 100;
 
         if (overallLoad == -100) {
-            System.out.println(overallLoad);
-            context.getSource().sendError(Text.literal("/cpu command is not available. This could be due to driver or hardware issues."));
+            sendErrorOutput(context, "/cpu command is not available. This could be due to driver or hardware issues.");
             return 0;
         }
 
@@ -102,15 +99,14 @@ public final class CPUCommand extends MCServerAnalyticsCommand {
 
         if (tempCelcIsAvailable) {
             outputBuilder.rateByLowerBoundAndAppend(tempCelc, 70, 80, 90, false);
-        }
-        else {
+        } else {
             outputBuilder.append("UNAVAILABLE", CommandOutputBuilder.Color.DARK_RED);
         }
         if (tempCelcIsAvailable) {
             outputBuilder.append("°C");
         }
 
-        context.getSource().sendMessage(Text.literal(outputBuilder.toString()));
+        sendOutput(context, outputBuilder.toString(), isServerConsoleOutput);
         return 1;
     }
 }

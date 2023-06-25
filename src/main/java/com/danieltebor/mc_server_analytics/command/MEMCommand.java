@@ -26,13 +26,11 @@ import com.danieltebor.mc_server_analytics.util.MemInfo;
 
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
-import com.mojang.brigadier.exceptions.CommandSyntaxException;
 
 import java.util.Arrays;
 import java.util.List;
 
 import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.text.Text;
 
 /**
  * @author Daniel Tebor
@@ -53,9 +51,9 @@ public final class MEMCommand extends MCServerAnalyticsCommand {
     }
 
     @Override
-    protected int executeDefault(final CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
-        if (!context.getSource().isExecutedByPlayer()) {
-            context.getSource().sendError(Text.literal("mem command is not available in server console"));
+    protected int executeDefault(final CommandContext<ServerCommandSource> context, final boolean isServerConsoleOutput) {
+        if (isServerConsoleOutput) {
+            sendErrorOutput(context, "mem command is not available in server console");
             return 0;
         }
 
@@ -85,7 +83,7 @@ public final class MEMCommand extends MCServerAnalyticsCommand {
         appendMemoryUsageSegment(outputBuilder, "Total",
             totalUsedMemory, totalCommittedMemory, totalMaxMemory, true, false);
 
-        context.getSource().sendMessage(Text.literal(outputBuilder.toString()));
+        sendOutput(context, outputBuilder.toString(), isServerConsoleOutput);
         return 1;
     }
 
@@ -128,8 +126,7 @@ public final class MEMCommand extends MCServerAnalyticsCommand {
                 maxMemory - 2 * (maxMemory / 10),
                 maxMemory - maxMemory / 10,
                 true);
-        }
-        else {
+        } else {
             outputBuilder.append(memoryUtilization, CommandOutputBuilder.Color.BLUE);
         }
         outputBuilder.append("MB/");

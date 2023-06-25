@@ -28,7 +28,8 @@ import java.lang.management.MemoryUsage;
 /**
  * @author Daniel Tebor
  */
-public abstract class MemInfo {
+public final class MemInfo {
+    private MemInfo() {}
     
     public static long getCommittedHeapMemory() {
         return ManagementFactory.getMemoryMXBean().getHeapMemoryUsage().getCommitted();

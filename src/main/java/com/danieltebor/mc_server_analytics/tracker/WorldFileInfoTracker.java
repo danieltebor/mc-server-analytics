@@ -22,6 +22,8 @@
 
 package com.danieltebor.mc_server_analytics.tracker;
 
+import com.danieltebor.mc_server_analytics.util.LoggerUtil;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -50,15 +52,13 @@ public final class WorldFileInfoTracker extends Tracker {
         try (InputStream input = Files.newInputStream(serverPropertiesPath)) {
             properties.load(input);
             levelName = properties.getProperty("level-name");
-        }
-        catch (IOException e) {
-            e.printStackTrace();
+        } catch (IOException e) {
+            LoggerUtil.sendError("Unable to read server.properties file", e);
         }
 
         if (levelName != null) {
             worldPath = Paths.get(serverPath.toString(), levelName);
-        }
-        else {
+        } else {
             worldPath = null;
         }
     }
@@ -100,13 +100,11 @@ public final class WorldFileInfoTracker extends Tracker {
                 synchronized (lock) {
                     lock.wait(adjustedTimeToWait);
                 }
-            } 
-            catch (IOException e) {
+            } catch (IOException e) {
                 if (++retries > MAX_RETRIES){
+                    LoggerUtil.sendError("Unable to access world directory", e);
                     close();
-                    System.err.println("[MC Server Analytics] Unable to access world file");
-                }
-                else {
+                } else {
                     synchronized(lock) {
                         lock.wait(RETRY_DELAY);
                     }

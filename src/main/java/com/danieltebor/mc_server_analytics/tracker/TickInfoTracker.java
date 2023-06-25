@@ -30,7 +30,7 @@ import java.util.Queue;
 /**
  * @author Daniel Tebor
  */
-public class TickInfoTracker extends Tracker {
+public final class TickInfoTracker extends Tracker {
 
     public final static int DESIRED_TPS = 20;
 

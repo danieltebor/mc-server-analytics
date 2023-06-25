@@ -29,7 +29,7 @@ import oshi.hardware.Sensors;
 /**
  * @author Daniel Tebor
  */
-public class CPUInfoTracker extends Tracker {
+public final class CPUInfoTracker extends Tracker {
 
     private static final long REFRESH_WAIT_TIME = 1000;
     

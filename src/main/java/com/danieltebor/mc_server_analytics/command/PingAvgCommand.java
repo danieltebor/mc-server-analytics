@@ -24,14 +24,12 @@ package com.danieltebor.mc_server_analytics.command;
 
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
-import com.mojang.brigadier.exceptions.CommandSyntaxException;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.text.Text;
 
 /**
  * @author Daniel Tebor
@@ -52,15 +50,15 @@ public final class PingAvgCommand extends MCServerAnalyticsCommand {
     }
     
     @Override
-    protected int executeDefault(final CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
-        final List<ServerPlayerEntity> players = context.getSource().getServer().getPlayerManager().getPlayerList();
+    protected int executeDefault(final CommandContext<ServerCommandSource> context, final boolean isServerConsoleOutput) {
         final CommandOutputBuilder outputBuilder = new CommandOutputBuilder("Average Ping", 
-            CommandOutputBuilder.Color.AQUA, !context.getSource().isExecutedByPlayer());
+            CommandOutputBuilder.Color.AQUA, isServerConsoleOutput);
+        final List<ServerPlayerEntity> players = context.getSource().getServer().getPlayerManager().getPlayerList();
             
         outputBuilder.append(": ");
         appendOutput(outputBuilder, players);
 
-        context.getSource().sendMessage(Text.literal(outputBuilder.toString()));
+        sendOutput(context, outputBuilder.toString(), isServerConsoleOutput);
         return 1;
     }
 
@@ -70,8 +68,7 @@ public final class PingAvgCommand extends MCServerAnalyticsCommand {
         final float avgPing;
         if (playerPings.size() > 0) {
             avgPing = (float) playerPings.stream().reduce(0, ((pingA, pingB) -> pingA + pingB)) / playerPings.size();
-        }
-        else {
+        } else {
             avgPing = 0;
         }
         

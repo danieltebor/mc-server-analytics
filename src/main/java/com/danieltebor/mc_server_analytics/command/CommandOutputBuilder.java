@@ -25,6 +25,8 @@ package com.danieltebor.mc_server_analytics.command;
 import java.util.Collections;
 import java.util.List;
 
+import com.danieltebor.mc_server_analytics.MCServerAnalytics;
+
 /**
  * @author Daniel Tebor
  */
@@ -65,6 +67,37 @@ public class CommandOutputBuilder {
             return chatCode;
         }
     }
+
+    public static enum Font {
+
+        ITALICIZED("italicized", "§o"),
+        BOLDED("red", "§l"),
+        UNDERLINED("gold", "§n");
+
+        private final String name;
+        private final String chatCode;
+
+        Font(String name, String chatCode) {
+            this.name = name;
+            this.chatCode = chatCode;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public String getChatCode() {
+            return chatCode;
+        }
+    }
+
+    private static final boolean SHOULD_FORMAT;
+
+    static {
+        SHOULD_FORMAT = MCServerAnalytics.getInstance().getConfigProperty("coloredCommandOutputs").equals("true")
+            ? true
+            : false;
+    }
     
     final StringBuilder outputBuilder;
     final boolean isServerConsoleOutput;
@@ -94,36 +127,88 @@ public class CommandOutputBuilder {
         outputBuilder = new StringBuilder(makeColored(seq.toString(), color));
     }
 
-    public void append(String str) {
+    public CommandOutputBuilder(final String str, final Font font, final boolean isServerConsoleOutput) {
+        this.isServerConsoleOutput = isServerConsoleOutput;
+        outputBuilder = new StringBuilder(makeFonted(str, font));
+    }
+
+    public CommandOutputBuilder(final CharSequence seq, final Font font, final boolean isServerConsoleOutput) {
+        this.isServerConsoleOutput = isServerConsoleOutput;
+        outputBuilder = new StringBuilder(makeFonted(seq.toString(), font));
+    }
+
+    public CommandOutputBuilder(final String str, final Color color, final Font font, final boolean isServerConsoleOutput) {
+        this.isServerConsoleOutput = isServerConsoleOutput;
+        outputBuilder = new StringBuilder(makeColored(makeFonted(str, font), color));
+    }
+
+    public CommandOutputBuilder(final CharSequence seq, final Color color, final Font font, final boolean isServerConsoleOutput) {
+        this.isServerConsoleOutput = isServerConsoleOutput;
+        outputBuilder = new StringBuilder(makeColored(makeFonted(seq.toString(), font), color));
+    }
+
+    public void append(final String str) {
         outputBuilder.append(str);
     }
 
-    public void append(char c) {
+    public void append(final char c) {
         outputBuilder.append(c);
     }
 
-    public void append(Object obj) {
+    public void append(final Object obj) {
         outputBuilder.append(obj);
     }
 
-    public void append(double dec, boolean shouldFormatDec) {
+    public void append(final double dec, final boolean shouldFormatDec) {
         append(shouldFormatDec ? formatDec(dec) : dec);
     }
 
-    public void append(String str, Color color) {
+    public void append(final String str, final Color color) {
         append(makeColored(str, color));
     }
 
-    public void append(char c, Color color) {
+    public void append(final char c, final Color color) {
         append(Character.toString(c), color);
     }
 
-    public void append(Object obj, Color color) {
+    public void append(final Object obj, final Color color) {
         append(String.valueOf(obj), color);
     }
 
-    public void append(double dec, boolean shouldFormatDec, Color color) {
+    public void append(final double dec, final boolean shouldFormatDec, final Color color) {
         append(shouldFormatDec ? formatDec(dec) : dec, color);
+    }
+
+    public void append(final String str, final Font font) {
+        append(makeFonted(str, font));
+    }
+
+    public void append(final char c, final Font font) {
+        append(Character.toString(c), font);
+    }
+
+    public void append(final Object obj, final Font font) {
+        append(String.valueOf(obj), font);
+    }
+
+    public void append(final double dec, final boolean shouldFormatDec, final Font font) {
+        append(shouldFormatDec ? formatDec(dec) : dec, font);
+    }
+
+    public void append(final String str, final Color color, final Font font) {
+        append(makeColored(makeFonted(str, font), color));
+    }
+
+    public void append(final char c, final Color color, final Font font) {
+        append(Character.toString(c), color, font);
+    }
+
+    public void append(final Object obj, final Color color, final Font font) {
+        append(String.valueOf(obj), color, font);
+    }
+
+    public void append(final double dec, final boolean shouldFormatDec, final Color color, final Font font) {
+        append(shouldFormatDec ? formatDec(dec) : dec, color, font);
     }
 
     public void buildUtilizationBarAndAppend(final double utilization,
@@ -131,8 +216,7 @@ public class CommandOutputBuilder {
                                              final Color color) {
         if (lowerBound > upperBound) {
             throw new IllegalArgumentException("lowerBound must be less than or equal to upperBound");
-        }
-        else if (utilization < lowerBound || utilization > upperBound) {
+        } else if (utilization < lowerBound || utilization > upperBound) {
             throw new IllegalArgumentException("utilization must be between lowerBound and upperBound");
         }
         
@@ -143,8 +227,7 @@ public class CommandOutputBuilder {
         for (int i = 0; i < barLength; i++) {
             if (barProgress < utilization) {
                 append("|", color);
-            }
-            else {
+            } else {
                 append(".", Color.GRAY);
             }
             barProgress += stepSize;
@@ -157,8 +240,7 @@ public class CommandOutputBuilder {
                                              final List<Color> colors) {
         if (lowerBound > upperBound) {
             throw new IllegalArgumentException("lowerBound must be less than or equal to upperBound");
-        }
-        else if (utilizations.size() == 0) {
+        } else if (utilizations.size() == 0) {
             throw new IllegalArgumentException("utilizations must not be empty");
         }
 
@@ -168,11 +250,9 @@ public class CommandOutputBuilder {
 
         if (minUtilization < lowerBound || minUtilization > upperBound) {
             throw new IllegalArgumentException("utilizations must be between lowerBound and upperBound");
-        }
-        else if (maxUtilization < lowerBound || maxUtilization > upperBound) {
+        } else if (maxUtilization < lowerBound || maxUtilization > upperBound) {
             throw new IllegalArgumentException("utilizations must be between lowerBound and upperBound");
-        }
-        else if (utilizations.size() != colors.size()) {
+        } else if (utilizations.size() != colors.size()) {
             throw new IllegalArgumentException("utilizations and colors must be the same size");
         }
         
@@ -184,12 +264,10 @@ public class CommandOutputBuilder {
         for (int i = 0; i < barLength; i++) {
             if (utilizationIdx < utilizations.size() && barProgress < utilizations.get(utilizationIdx)) {
                 append("|", colors.get(utilizationIdx));
-            }
-            else if (utilizationIdx + 1 < utilizations.size() && barProgress < utilizations.get(utilizationIdx + 1)) {
+            } else if (utilizationIdx + 1 < utilizations.size() && barProgress < utilizations.get(utilizationIdx + 1)) {
                 ++utilizationIdx;
                 append("|", colors.get(utilizationIdx));
-            }
-            else {
+            } else {
                 append(".", Color.GRAY);
             }
             barProgress += stepSize;
@@ -202,8 +280,7 @@ public class CommandOutputBuilder {
                                           final boolean shouldFlattenNum) {
         if (goodThreshold < moderateThreshold) {
             throw new IllegalArgumentException("goodThreshold must be greater than or equal to moderateThreshold");
-        }
-        else if (moderateThreshold < badThreshold) {
+        } else if (moderateThreshold < badThreshold) {
             throw new IllegalArgumentException("moderateThreshold must be greater than or equal to badThreshold");
         }
         
@@ -211,21 +288,17 @@ public class CommandOutputBuilder {
 
         if (num >= goodThreshold) {
             color = Color.GREEN;
-        }
-        else if (num >= moderateThreshold) {
+        } else if (num >= moderateThreshold) {
             color = Color.YELLOW;
-        }
-        else if (num >= badThreshold) {
+        } else if (num >= badThreshold) {
             color = Color.RED;
-        }
-        else {
+        } else {
             color = Color.DARK_RED;
         }
 
         if (shouldFlattenNum) {
             append((int) num, color);
-        }
-        else {
+        } else {
             append(num, true, color);
         }
     }
@@ -235,8 +308,7 @@ public class CommandOutputBuilder {
                                           final boolean shouldFlattenNum) {
         if (goodThreshold > moderateThreshold) {
             throw new IllegalArgumentException("goodThreshold must be less than or equal to moderateThreshold");
-        }
-        else if (moderateThreshold > badThreshold) {
+        } else if (moderateThreshold > badThreshold) {
             throw new IllegalArgumentException("moderateThreshold must be less than or equal to badThreshold");
         }
 
@@ -264,7 +336,7 @@ public class CommandOutputBuilder {
     }
 
     public void formatSnakeCaseAndAppend(String str) {
-        formatSnakeCase(str);
+        append(formatSnakeCase(str));
     }
 
     public void formatSnakeCaseAndAppend(String str, Color color) {
@@ -294,11 +366,23 @@ public class CommandOutputBuilder {
     }
 
     private String makeColored(final String str, final Color color) {
-        if (isServerConsoleOutput) {
+        if (isServerConsoleOutput || !SHOULD_FORMAT) {
             return str;
         }
 
         final StringBuilder coloredStr = new StringBuilder(color.chatCode);
+        coloredStr.append(str);
+        coloredStr.append("§r");
+
+        return coloredStr.toString();
+    }
+
+    private String makeFonted(final String str, final Font font) {
+        if (isServerConsoleOutput || !SHOULD_FORMAT) {
+            return str;
+        }
+
+        final StringBuilder coloredStr = new StringBuilder(font.chatCode);
         coloredStr.append(str);
         coloredStr.append("§r");
 

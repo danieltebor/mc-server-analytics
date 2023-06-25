@@ -22,6 +22,7 @@
 
 package com.danieltebor.mc_server_analytics.command;
 
+import com.danieltebor.mc_server_analytics.util.LoggerUtil;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
@@ -30,7 +31,6 @@ import net.minecraft.command.argument.DimensionArgumentType;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.text.Text;
 import net.minecraft.util.TypeFilter;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.ItemEntity;
@@ -53,29 +53,24 @@ public class EntityInfoCommand extends MCServerAnalyticsCommand {
     protected LiteralArgumentBuilder<ServerCommandSource> getArgumentBuilderImpl() {
         return getDefaultArgumentBuilder()
             .then(CommandManager.argument(ARG_NAMES[0][0], DimensionArgumentType.dimension())
-            .executes(this::executeParameterized));
+            .executes(this::executeParameterizedWrapper));
     }
 
     @Override
-    protected int executeDefault(final CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
+    protected int executeDefault(final CommandContext<ServerCommandSource> context, final boolean isServerConsoleOutput) {
         final MinecraftServer server = context.getSource().getServer();
-        final boolean isServerConsoleOutput = !context.getSource().isExecutedByPlayer();
 
-        context.getSource().sendMessage(Text.literal(
-            buildOutput(server, null, isServerConsoleOutput)));
+        sendOutput(context, buildOutput(server, null, isServerConsoleOutput), isServerConsoleOutput);
         return 1;
     }
 
     @Override
-    protected int executeParameterized(final CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
+    protected int executeParameterized(final CommandContext<ServerCommandSource> context, final boolean isServerConsoleOutput) throws CommandSyntaxException {
         final MinecraftServer server = context.getSource().getServer();
         final String dimArgument = DimensionArgumentType.getDimensionArgument(context, ARG_NAMES[0][0])
             .getDimensionEntry().getKey().get().getValue().toString().split(":")[1];
-        final boolean isServerConsoleOutput = !context.getSource().isExecutedByPlayer();
         
-        context.getSource().sendMessage(Text.literal(
-            buildOutput(server, dimArgument, isServerConsoleOutput)));
-        
+        sendOutput(context, buildOutput(server, dimArgument, isServerConsoleOutput), isServerConsoleOutput);
         return 1;
     }
 
@@ -89,8 +84,7 @@ public class EntityInfoCommand extends MCServerAnalyticsCommand {
             outputBuilder.append(isServerConsoleOutput ? "Entity Info" : "      Entity Info",
                 CommandOutputBuilder.Color.AQUA);
             outputBuilder.append("\n=================");
-        }
-        else {
+        } else {
             if (isServerConsoleOutput) {
                 outputBuilder.append("\n");
             }
@@ -107,7 +101,9 @@ public class EntityInfoCommand extends MCServerAnalyticsCommand {
 
             try {
                 dimName = outputBuilder.formatSnakeCase(dimName);
-            } catch(Exception e) {}
+            } catch(Exception e) {
+                LoggerUtil.sendInfo("An unexpected error occured formatting dimension name for " + NAME + " command. Using unformatted version", true);
+            }
             final int passiveEntitiesCount = world.getEntitiesByType(TypeFilter.instanceOf(PassiveEntity.class), entity -> true).size();
             final int mobEntitiesCount = world.getEntitiesByType(TypeFilter.instanceOf(MobEntity.class), entity -> true).size();
             final int itemEntitiesCount = world.getEntitiesByType(TypeFilter.instanceOf(ItemEntity.class), entity -> true).size();

@@ -26,7 +26,6 @@ import com.danieltebor.mc_server_analytics.MCServerAnalytics;
 import com.danieltebor.mc_server_analytics.tracker.WorldFileInfoTracker;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
-import com.mojang.brigadier.exceptions.CommandSyntaxException;
 
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.text.Text;
@@ -49,10 +48,10 @@ public class WorldSizeCommand extends MCServerAnalyticsCommand {
     }
 
     @Override
-    protected int executeDefault(final CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
+    protected int executeDefault(final CommandContext<ServerCommandSource> context, final boolean isServerConsoleOutput) {
         final WorldFileInfoTracker worldFileInfoTracker = MCServerAnalytics.getInstance().getWorldFileInfoTracker();
         final CommandOutputBuilder outputBuilder = new CommandOutputBuilder("World Size", 
-            CommandOutputBuilder.Color.AQUA, !context.getSource().isExecutedByPlayer());
+            CommandOutputBuilder.Color.AQUA, isServerConsoleOutput);
 
         if (!worldFileInfoTracker.isAlive() && worldFileInfoTracker.getWorldSizeBytes() == -1) {
             context.getSource().sendError(Text.literal("World size is unavailable"));
@@ -61,7 +60,7 @@ public class WorldSizeCommand extends MCServerAnalyticsCommand {
 
         appendOutput(outputBuilder, worldFileInfoTracker);
 
-        context.getSource().sendMessage(Text.literal(outputBuilder.toString()));
+        sendOutput(context, outputBuilder.toString(), isServerConsoleOutput);
         return 1;
     }
 

@@ -23,6 +23,7 @@
 package com.danieltebor.mc_server_analytics.command;
 
 import com.danieltebor.mc_server_analytics.accessor.ServerChunkManagerAccessor;
+import com.danieltebor.mc_server_analytics.util.LoggerUtil;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
@@ -31,7 +32,6 @@ import net.minecraft.command.argument.DimensionArgumentType;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.text.Text;
 import net.minecraft.world.chunk.WorldChunk;
 
 /**
@@ -51,29 +51,30 @@ public final class ChunkInfoCommand extends MCServerAnalyticsCommand {
     protected LiteralArgumentBuilder<ServerCommandSource> getArgumentBuilderImpl() {
         return getDefaultArgumentBuilder()
             .then(CommandManager.argument(ARG_NAMES[0][0], DimensionArgumentType.dimension())
-            .executes(this::executeParameterized));
+            .executes(this::executeParameterizedWrapper));
     }
 
     @Override
-    protected int executeDefault(final CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
+    protected int executeDefault(final CommandContext<ServerCommandSource> context, final boolean isServerConsoleOutput) {
         final MinecraftServer server = context.getSource().getServer();
-        final boolean isServerConsoleOutput = !context.getSource().isExecutedByPlayer();
 
-        context.getSource().sendMessage(Text.literal(
-            buildOutput(server, null, isServerConsoleOutput)));
+        sendOutput(context, buildOutput(server, null, isServerConsoleOutput), isServerConsoleOutput);
         return 1;
     }
 
     @Override
-    protected int executeParameterized(final CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
+    protected int executeParameterized(final CommandContext<ServerCommandSource> context, final boolean isServerConsoleOutput) {
         final MinecraftServer server = context.getSource().getServer();
-        final String dimArgument = DimensionArgumentType.getDimensionArgument(context, ARG_NAMES[0][0])
-            .getDimensionEntry().getKey().get().getValue().toString().split(":")[1];
-        final boolean isServerConsoleOutput = !context.getSource().isExecutedByPlayer();
+        String dimArgument;
+        try {
+            dimArgument = DimensionArgumentType.getDimensionArgument(context, ARG_NAMES[0][0])
+                .getDimensionEntry().getKey().get().getValue().toString().split(":")[1];
+        }
+        catch (CommandSyntaxException e) {
+            return 0;
+        }
         
-        context.getSource().sendMessage(Text.literal(
-            buildOutput(server, dimArgument, isServerConsoleOutput)));
-        
+        sendOutput(context, buildOutput(server, dimArgument, isServerConsoleOutput), isServerConsoleOutput);
         return 1;
     }
 
@@ -87,8 +88,7 @@ public final class ChunkInfoCommand extends MCServerAnalyticsCommand {
             outputBuilder.append(isServerConsoleOutput ? "Chunk Info" : "      Chunk Info", 
                 CommandOutputBuilder.Color.AQUA);
             outputBuilder.append("\n=================");
-        }
-        else {
+        } else {
             if (isServerConsoleOutput) {
                 outputBuilder.append("\n");
             }
@@ -105,7 +105,9 @@ public final class ChunkInfoCommand extends MCServerAnalyticsCommand {
             
             try {
                 dimName = outputBuilder.formatSnakeCase(dimName);
-            } catch(Exception e) {}
+            } catch(Exception e) {
+                LoggerUtil.sendInfo("An unexpected error occured formatting dimension name for " + NAME + " command. Using unformatted version", true);
+            }
 
             final int[] loadedChunkInfo = {0, 0};
             ((ServerChunkManagerAccessor) world.getChunkManager()).getChunkHolderEntryIterator().forEach((chunkHolder) -> {
@@ -115,7 +117,7 @@ public final class ChunkInfoCommand extends MCServerAnalyticsCommand {
                     loadedChunkInfo[1] = worldChunk.countVerticalSections();
                 }
             });
-            if (loadedChunkInfo[1] != 0){
+            if (loadedChunkInfo[1] != 0) {
                 loadedChunkInfo[0] = loadedChunkInfo[0] / loadedChunkInfo[1];
             }
             final int forceLoadedChunkCount = world.getForcedChunks().size();
@@ -130,8 +132,7 @@ public final class ChunkInfoCommand extends MCServerAnalyticsCommand {
             if (dimArgument != null || loadedChunkInfo[0] + forceLoadedChunkCount != 0) {
                 appendChunksLoadedSegment(outputBuilder, dimName, loadedChunkInfo[0], forceLoadedChunkCount);
                 dimsWithLoadedChunksCount[0] += 1;
-            }
-            else {
+            } else {
                 outputBuilder.append(dimName, CommandOutputBuilder.Color.GOLD);
                 outputBuilder.append("\n| ");
                 outputBuilder.append("None Loaded", CommandOutputBuilder.Color.DARK_AQUA);

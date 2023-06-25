@@ -29,7 +29,6 @@ import com.danieltebor.mc_server_analytics.tracker.WorldFileInfoTracker;
 import com.danieltebor.mc_server_analytics.util.MemInfo;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
-import com.mojang.brigadier.exceptions.CommandSyntaxException;
 
 import java.util.Arrays;
 import java.util.List;
@@ -39,7 +38,6 @@ import net.minecraft.entity.ItemEntity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.text.Text;
 import net.minecraft.util.TypeFilter;
 import net.minecraft.world.chunk.WorldChunk;
 
@@ -62,8 +60,7 @@ public final class PerformanceSummaryCommand extends MCServerAnalyticsCommand {
     }
 
     @Override
-    protected int executeDefault(final CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
-        final boolean isServerConsoleOutput = !context.getSource().isExecutedByPlayer();
+    protected int executeDefault(final CommandContext<ServerCommandSource> context, final boolean isServerConsoleOutput) {
         final CommandOutputBuilder outputBuilder = new CommandOutputBuilder("\n", 
             CommandOutputBuilder.Color.AQUA, isServerConsoleOutput);
 
@@ -180,12 +177,11 @@ public final class PerformanceSummaryCommand extends MCServerAnalyticsCommand {
 
         if (!worldFileInfoTracker.isAlive() && worldFileInfoTracker.getWorldSizeBytes() == -1) {
             outputBuilder.append("UNAVAILABLE", CommandOutputBuilder.Color.DARK_RED);
-        }
-        else {
+        } else {
             WorldSizeCommand.appendOutput(outputBuilder, worldFileInfoTracker);
         }
 
-        context.getSource().sendMessage(Text.literal(outputBuilder.toString()));
+        sendOutput(context, outputBuilder.toString(), isServerConsoleOutput);
         return 1;
     }
 }

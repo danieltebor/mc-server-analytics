@@ -22,15 +22,17 @@
 
 package com.danieltebor.mc_server_analytics.command;
 
+import com.danieltebor.mc_server_analytics.MCServerAnalytics;
+import com.mojang.authlib.GameProfile;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 
 import net.minecraft.command.argument.EntityArgumentType;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.text.Text;
 
 /**
  * @author Daniel Tebor
@@ -49,30 +51,38 @@ public final class PingCommand extends MCServerAnalyticsCommand {
     protected LiteralArgumentBuilder<ServerCommandSource> getArgumentBuilderImpl() {
         return getDefaultArgumentBuilder()
             .then(CommandManager.argument(ARG_NAMES[0][0], EntityArgumentType.players())
-            .executes(this::executeParameterized));
+            .executes(this::executeParameterizedWrapper));
     }
 
     @Override
-    protected int executeDefault(final CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
-        final boolean isServerConsoleOutput = !context.getSource().isExecutedByPlayer();
-        
+    protected int executeDefault(final CommandContext<ServerCommandSource> context, final boolean isServerConsoleOutput) {
         if (isServerConsoleOutput) {
-            context.getSource().sendError(Text.literal("Invalid command usage"));
+            sendErrorOutput(context, "Invalid command usage");
             return 0;
         }
         
-        context.getSource().sendMessage(Text.literal(
-                buildOutput(context.getSource().getPlayer(), true, isServerConsoleOutput)));
+        sendOutput(context, buildOutput(context.getSource().getPlayer(), true, isServerConsoleOutput), isServerConsoleOutput);
         return 1;
     }
 
     @Override
-    protected int executeParameterized(final CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
+    protected int executeParameterized(final CommandContext<ServerCommandSource> context, final boolean isServerConsoleOutput) throws CommandSyntaxException {
         final ServerPlayerEntity playerArgument = EntityArgumentType.getPlayer(context, "player");
         final boolean playerIsCommander = playerArgument.equals(context.getSource().getPlayer());
-        final boolean isServerConsoleOutput = !context.getSource().isExecutedByPlayer();
         
-        context.getSource().sendMessage(Text.literal(buildOutput(playerArgument, playerIsCommander, isServerConsoleOutput)));
+        if (!isServerConsoleOutput) {
+            GameProfile playerProfile = context.getSource().getPlayer().getGameProfile();
+            MinecraftServer server = context.getSource().getServer();
+            
+            if (MCServerAnalytics.getInstance().getConfigProperty("pingCommandRequiresOpToPingOthers").equals("true")
+                && !playerIsCommander
+                && server.getPermissionLevel(playerProfile) != server.getOpPermissionLevel()) {
+                sendErrorOutput(context, "pinging others requires op");
+                return 0;
+            }
+        }
+
+        sendOutput(context, buildOutput(playerArgument, playerIsCommander, isServerConsoleOutput), isServerConsoleOutput);
         return 1;
     }
 
@@ -81,8 +91,7 @@ public final class PingCommand extends MCServerAnalyticsCommand {
         
         if (playerIsCommander) {
             outputBuilder.append("Your ", CommandOutputBuilder.Color.GOLD);
-        }
-        else {
+        } else {
             outputBuilder.append(playerArgument.getEntityName(), CommandOutputBuilder.Color.GOLD);
             outputBuilder.append("'s ");
         }

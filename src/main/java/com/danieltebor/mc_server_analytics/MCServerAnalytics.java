@@ -22,9 +22,12 @@
 
 package com.danieltebor.mc_server_analytics;
 
+import java.util.Properties;
+
 import com.danieltebor.mc_server_analytics.command.Commands;
 import com.danieltebor.mc_server_analytics.tracker.CPUInfoTracker;
 import com.danieltebor.mc_server_analytics.tracker.WorldFileInfoTracker;
+import com.danieltebor.mc_server_analytics.util.ConfigUtil;
 
 import net.fabricmc.api.DedicatedServerModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
@@ -38,6 +41,7 @@ public class MCServerAnalytics implements DedicatedServerModInitializer {
 
     private static MCServerAnalytics instance;
     
+    private Properties configProperties = ConfigUtil.readConfig();
     private MinecraftServer server;
     private CPUInfoTracker cpuInfoTracker = new CPUInfoTracker();
     private WorldFileInfoTracker worldFileInfoTracker = new WorldFileInfoTracker();
@@ -67,16 +71,20 @@ public class MCServerAnalytics implements DedicatedServerModInitializer {
         });
     }
 
+    public synchronized String getConfigProperty(String property) {
+        return configProperties.getProperty(property);
+    }
+
+    public synchronized MinecraftServer getServer() {
+        return server;
+    }
+
     public CPUInfoTracker getCpuInfoTracker() {
         return cpuInfoTracker;
     }
 
     public WorldFileInfoTracker getWorldFileInfoTracker() {
         return worldFileInfoTracker;
-    }
-
-    public synchronized MinecraftServer getServer() {
-        return server;
     }
 
     public static MCServerAnalytics getInstance() {

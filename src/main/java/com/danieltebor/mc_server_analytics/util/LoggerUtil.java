@@ -20,46 +20,29 @@
  * SOFTWARE.
  */
 
-package com.danieltebor.mc_server_analytics.tracker;
+package com.danieltebor.mc_server_analytics.util;
+
+import com.danieltebor.mc_server_analytics.MCServerAnalytics;
+
+import net.minecraft.text.Text;
 
 /**
  * @author Daniel Tebor
  */
-public abstract class Tracker extends Thread {
-    
-    protected final Object lock = new Object();
-    
-    private volatile boolean shouldTrack = true;
+public final class LoggerUtil {
+    private static String MSG_PREFIX = "[MC Server Analytics] ";
 
-    public Tracker() {
-        setDaemon(true);
+    private LoggerUtil() {}
+
+    public static void sendInfo(String msg, boolean shouldUsePrefix) {
+        MCServerAnalytics.getInstance().getServer()
+            .getCommandSource()
+            .sendMessage(Text.literal(shouldUsePrefix ? MSG_PREFIX : "" + msg));
     }
 
-    @Override
-    public final void run() {
-        try {
-            trackImpl();
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
-    }
-
-    public final void close() {
-        shouldTrack = false;
-        synchronized(lock) {
-            lock.notify();
-        }
-
-        try {
-            join();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-    }
-
-    protected abstract void trackImpl() throws InterruptedException;
-
-    protected boolean shouldTrack() {
-        return shouldTrack;
+    public static void sendError(String msg, Exception e) {
+        MCServerAnalytics.getInstance().getServer()
+            .getCommandSource()
+            .sendMessage(Text.literal(MSG_PREFIX + msg + "\n" + e.getStackTrace().toString()));
     }
 }

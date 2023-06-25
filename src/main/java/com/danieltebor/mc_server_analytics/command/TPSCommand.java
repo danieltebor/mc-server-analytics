@@ -26,13 +26,11 @@ import com.danieltebor.mc_server_analytics.MCServerAnalytics;
 import com.danieltebor.mc_server_analytics.accessor.MinecraftServerAccessor;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
-import com.mojang.brigadier.exceptions.CommandSyntaxException;
 
 import java.util.AbstractMap;
 import java.util.stream.Stream;
 
 import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.text.Text;
 
 /**
  * @author Daniel Tebor
@@ -53,13 +51,13 @@ public final class TPSCommand extends MCServerAnalyticsCommand {
     }
 
     @Override
-    protected int executeDefault(final CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
+    protected int executeDefault(final CommandContext<ServerCommandSource> context, final boolean isServerConsoleOutput) {
         final CommandOutputBuilder outputBuilder = new CommandOutputBuilder("TPS", 
-            CommandOutputBuilder.Color.AQUA, !context.getSource().isExecutedByPlayer());
+            CommandOutputBuilder.Color.AQUA, isServerConsoleOutput);
         
         appendOutput(outputBuilder, CommandOutputBuilder.Color.GOLD);
 
-        context.getSource().sendMessage(Text.literal(outputBuilder.toString()));
+        sendOutput(context, outputBuilder.toString(), isServerConsoleOutput);
         return 1;
     }
 

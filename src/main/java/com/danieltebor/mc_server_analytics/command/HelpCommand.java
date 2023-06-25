@@ -24,10 +24,8 @@ package com.danieltebor.mc_server_analytics.command;
 
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
-import com.mojang.brigadier.exceptions.CommandSyntaxException;
 
 import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.text.Text;
 
 /**
  * @author Daniel Tebor
@@ -47,9 +45,7 @@ public final class HelpCommand extends MCServerAnalyticsCommand {
     }
 
     @Override
-    protected int executeDefault(final CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
-        try{
-        final boolean isServerConsoleOutput = !context.getSource().isExecutedByPlayer();
+    protected int executeDefault(final CommandContext<ServerCommandSource> context, final boolean isServerConsoleOutput) {
         final CommandOutputBuilder outputBuilder = new CommandOutputBuilder("\n", isServerConsoleOutput);
 
         outputBuilder.append(isServerConsoleOutput ? "MC" : "        MC",
@@ -67,18 +63,14 @@ public final class HelpCommand extends MCServerAnalyticsCommand {
             appendCommandInfoSegment(outputBuilder, command);
         });
 
-        context.getSource().sendMessage(Text.literal(outputBuilder.toString()));
-        } catch(Exception e) {
-            e.printStackTrace();
-        }
+        sendOutput(context, outputBuilder.toString(), isServerConsoleOutput);
         return 1;
     }
 
     private void appendCommandInfoSegment(final CommandOutputBuilder outputBuilder, final MCServerAnalyticsCommand command) {
         if (command.getName().length() == 0) {
             throw new IllegalArgumentException("name must have a length greater than 0");
-        }
-        else if (getDescription().length() == 0) {
+        } else if (getDescription().length() == 0) {
             throw new IllegalAccessError("description must have a length greater than 0");
         }
           
