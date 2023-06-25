@@ -17,10 +17,10 @@ MC Server Analytics is a lightweight Fabric server mod that adds utils for admin
 - /tps (shows avg server TPS for 5s, 15s, 1m, 5m, and 15m)
 - /world-size (Shows world file size)
 
+### Config
+Commands permissions & whether they are enabled can be set in config/mc-server-analytics.properties
+
 ### Planned Commands & Features
-- enabling/disabling commands
-- command permissions
-- logging
 - displaying cpu usage/memory on a client-side leaderboard
 
 ## Installation
@@ -30,6 +30,3 @@ MC Server Analytics is a lightweight Fabric server mod that adds utils for admin
 
 ### Manual Installation
 Once the Fabric Minecraft Server is properly configured, download the requisite version of MC Server Analytics for your version of Minecraft as well as the requisite version of the Fabric API and move both mods into the mods folder.
-
-## Shoutouts
-There is an awesome mod similar to this called [TabTPS](https://github.com/jpenilla/TabTPS) that I referenced alot when learning how to create this mod, so please check it out. It's pretty awesome, and it works for more server distros than just Fabric.
