@@ -21,6 +21,8 @@ public final class ConfigUtil {
     private static final String CONFIG_FILENAME = "mc-server-analytics.properties";
     private static final Map<String, String> DEFAULT_CONFIG = new LinkedHashMap<>();
 
+    private static Properties configCache = null;
+
     static {
         DEFAULT_CONFIG.put("coloredCommandOutputs", "true");
 
@@ -62,6 +64,10 @@ public final class ConfigUtil {
     private ConfigUtil() {}
 
     public static Properties readConfig() {
+        if (configCache != null) {
+            return configCache;
+        }
+
         Path configDir = Paths.get(System.getProperty("user.dir"), CONFIG_DIR);
         if (!Files.exists(configDir)) {
             try {
@@ -82,6 +88,7 @@ public final class ConfigUtil {
         } catch (IOException e) {
             LoggerUtil.sendError("Unable to read mc-server-analytics.cfg", e);
         }
+        configCache = config;
         return config;
     }
 
