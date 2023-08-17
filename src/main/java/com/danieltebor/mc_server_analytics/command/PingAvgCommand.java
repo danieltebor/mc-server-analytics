@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011 - 2020 Olivier Biot
+ * Copyright (C) 2023 Daniel Tebor
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
